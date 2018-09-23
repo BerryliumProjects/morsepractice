@@ -3,7 +3,7 @@ use Tk;
 use Tk::After;
 use Audio::Data;
 use Audio::Play;
-use Time::HiRes qw(time);
+use Time::HiRes qw(time usleep);
 
 use charcodes;  # definitions of characters as dit-dah sequences
 
@@ -82,9 +82,9 @@ my $keylistlen = scalar(@keylist);
 
 
 $svr = Audio::Play->new(1);
-# $bitrate = $svr->rate;
+$bitrate = $svr->rate;
 #$ratecorrection = 1; # 9600/8000; # for some reason audio plays slower than it should by this factor 
-$bitrate = 16000;
+print "Sampling rate: $bitrate\n";
 
 $pulsems = 1200/$wpm;
 
@@ -115,20 +115,6 @@ for ($i = 0; $i < $risecnt; $i++) {
 
 $dotbeep->data(@dotbeepdata);
 
-# smooth rise and fall
-#$dotrisefall = $dotbeep->timerange(0, $risetime) . $dotbeep->timerange($dotduration - $risetime, $dotduration);
-#$dotmiddle = $dotbeep->timerange($risetime, $dotduration - $risetime);
-
-#$hanning = $dotrisefall->hamming($dotrisefall->samples, 0, 0.5);
-#print "Samples in half-dot-hanning: " . $hanning->samples . "\n";
-
-#$dotbeep = $hanning->timerange(0, $risetime) . $dotmiddle . $hanning->timerange($risetime, $hanning->duration);
-
-##@dotdata = $dotbeep->data;
-
-#$prev= 0;
-#foreach (@dotdata) {printf "%5.2f\t", $_} print "\n" . '-' x 78 . "\n\n";
-
 $dashbeep = Audio::Data->new(rate=>$bitrate);
 $dashduration = 0.001 * $dashweight * $pulsems + $risetime;
 $dashbeep->tone($tonefreq * $ratecorrection, $dashduration / $ratecorrection, 0.5);
@@ -143,19 +129,6 @@ for ($i = 0; $i < $risecnt; $i++) {
 
 $dashbeep->data(@dashbeepdata);
 
-# smooth rise and fall
-#$dashrisefall = $dashbeep->timerange(0, $risetime) . $dashbeep->timerange($dashduration - $risetime, $dashduration);
-#$dashmiddle = $dashbeep->timerange($risetime, $dashduration - $risetime);
-
-#$hanning = $dashrisefall->hamming($dashrisefall->samples, 0, 0.5);
-#print "Samples in half-dash-hanning: " . $hanning->samples . "\n";
-
-#$dashbeep = $hanning->timerange(0, $risetime) . $dashmiddle . $hanning->timerange($risetime, $hanning->duration);
-#@dashdata = $dashbeep->data;
-
-#$prev= 0;
-#foreach (@dashdata) {printf "%5.2f\t", $_ - $prev; $prev = $_;} print "\n" . '-' x 78 . "\n\n";
-
 $dotsilence = Audio::Data->new(rate=>$bitrate);
 $dotsilenceduration = 0.001 * $pulsems - $risetime;
 $dotsilence->silence($dotsilenceduration / $ratecorrection);
@@ -168,7 +141,7 @@ $charsilenceduration = 0.001 * $charpause;
 $charsilence->silence($charsilenceduration / $ratecorrection);
 
 $bufferclearsilence = Audio::Data->new(rate=>$bitrate);
-$bufferclearsilenceduration = 0.3;
+$bufferclearsilenceduration = 0.2;
 $bufferclearsilence->silence($bufferclearsilenceduration / $ratecorrection);
 
 # get actual durations allowing for any rounding
@@ -213,6 +186,7 @@ while (<SI>) {
 
    if ($actualtime > $expectedplayendtime) {
       $expectedplayendtime = $actualtime;
+      clearbuffer(); # buffer is empty so pcm device needs waking up first
    }
 
    foreach my $ch (split(//, $chars)) {
@@ -251,7 +225,7 @@ while (<SI>) {
    }
 
    unless ($text) {
-      clearbuffer();
+      clearbuffer(); # allow to flush
       # record a notional end time of an interword space
       my $notionalplayendtime = $expectedplayendtime + $charsilenceduration * 2;
       push @charendtimereports, " \t$notionalplayendtime\t4\n";
@@ -269,36 +243,52 @@ while (<SI>) {
 }
 
 close(SI);
-$svr->play($bufferclearsilence);
-$svr->play($bufferclearsilence);
-$svr->play($bufferclearsilence);
-#$svr->flush();
+clearbuffer();
+sleep 1; # before $svr destructor called
+# $svr->flush();
 exit 0;
+
+sub safeplay {
+   my $svr= shift; # server
+   my $au = shift; # audio
+
+   my $brokenpipe = undef;
+
+   local $SIG{__WARN__} = sub {
+      my $msg = shift;
+      $brokenpipe = ($msg =~ /Broken pipe/);
+      print "Warning: $msg\n" unless $brokenpipe; # unexpected warning, show this 
+   };
+
+      $svr->play($au);
+      print '!' if ($verbose and $brokenpipe);
+      $brokenpipe = undef;
+}
 
 sub playdot {
     print '.' if $verbose;
-    $svr->play($wholedot);
+    safeplay($svr, $wholedot);
     $expectedplayendtime += $wholedotduration;
     $pulses += 2;
 }
 
 sub playdash {
     print '-' if $verbose;
-    $svr->play($wholedash);
+    safeplay($svr, $wholedash);
     $expectedplayendtime += $wholedashduration;
     $pulses += ($dashweight + 1);
 }
 
 sub playspace {
     print '_'  if $verbose;
-    $svr->play($charsilence);
+    safeplay($svr, $charsilence);
     $expectedplayendtime += $charsilenceduration;
     $pulses += 2;
 }
 
 sub clearbuffer {
-    print '_'  if $verbose;
-    $svr->play($bufferclearsilence);
+    print '|'  if $verbose;
+    safeplay($svr, $bufferclearsilence);
     $expectedplayendtime += $bufferclearduration;
 }
 
