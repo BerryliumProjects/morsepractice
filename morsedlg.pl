@@ -117,8 +117,8 @@ my $usedict;
 my $w = MainWindow->new();
 
 my $font = $w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
-print "Actual font:" .  Dumper($w->fontActual('msgbox')) . "\n";
-printf "Descent/Linespace: %i %i\n", $w->fontMetrics('msgbox', -descent), $w->fontMetrics('msgbox', -linespace); 
+#print "Actual font:" .  Dumper($w->fontActual('msgbox')) . "\n";
+#printf "Descent/Linespace: %i %i\n", $w->fontMetrics('msgbox', -descent), $w->fontMetrics('msgbox', -linespace); 
 
 
 # share as global variables for general access

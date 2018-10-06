@@ -185,6 +185,7 @@ while (<SI>) {
    $actualtime = time();
 
    if ($actualtime > $expectedplayendtime) {
+#      print "Recalibrated expected play end time\n"; #diags
       $expectedplayendtime = $actualtime;
       clearbuffer(); # buffer is empty so pcm device needs waking up first
    }
@@ -224,6 +225,8 @@ while (<SI>) {
       $pulses = 0;
    }
 
+
+   # end of input line
    unless ($text) {
       clearbuffer(); # allow to flush
       # record a notional end time of an interword space
