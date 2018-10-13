@@ -105,6 +105,8 @@ sub addCheckbuttonField {
       }
    }
 
+   $entryctl->bind('<ButtonPress-1>', [$entryctl => 'focus']);
+
    if (defined $command) {
       $entryctl->configure(-command=>$command);
    }
@@ -208,7 +210,7 @@ sub addButtonField {
    }
 
    $self->{attr}->{$ctlvar} = "button $attributes ";
-
+   $button->bind('<ButtonPress-1>', [$button => 'focus']);
    return $button;
 }
 
