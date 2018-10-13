@@ -29,6 +29,9 @@ my $dashweight = 3.0;
 my $extrawordspaces = 0;
 my $abortpending = 0;
 
+my $bufferinglimit = 3; # seconds
+
+
 # enable asynchronous abort of a long playing text
 local $SIG{'TERM'} = sub {$abortpending = 1};
 
@@ -223,6 +226,11 @@ while (<SI>) {
 
       push @charendtimereports, "$ch\t$expectedplayendtime\t$pulses\n";
       $pulses = 0;
+
+      # don't let audio buffer get too far ahead
+      while ($expectedplayendtime > time() + $bufferinglimit) {
+         sleep 1;
+      }
    }
 
 
