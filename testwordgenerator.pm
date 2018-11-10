@@ -1,11 +1,172 @@
 #!/usr/bin/perl 
+package TestWordGenerator;
+
 use strict;
 use warnings;
-
-use Tk;
-use Tk::ROText;
-
 use Data::Dumper;
+
+sub new {
+   my $class = shift;
+   my $minlength = shift;
+   my $maxlength = shift;
+   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, size => 0};
+   bless($self, $class);
+   return $self;
+}
+
+
+sub addDictionary {
+   my $self = shift;
+   my $wordfile = shift;
+   my $offset = shift;
+   my $maxcount = shift;
+
+   my $c = 0; # count of words added
+
+   if (open(WL, $wordfile)) {
+      while (defined(my $word = <WL>)) {
+         chomp $word;
+         $word =~ s/ //g;
+
+         if (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength}) { 
+            $c++;
+            if ($c > $offset) {
+               $self->addWord($word);
+               last if ($c >= $offset + $maxcount);
+            }
+         }
+      } 
+   }
+
+   close(WL);
+}
+
+
+sub addRandom {
+   my $self = shift;
+   my $weightedcharlist = shift;
+   my $count = shift;
+
+   my $charlistlength = length($weightedcharlist);
+
+   for (my $i = 0; $i < $count; $i++) {
+      my $wordlength = int(rand($self->{maxlength} - $self->{minlength} + 1)) + $self->{minlength};
+      my $word = '';
+
+      foreach (1 .. $wordlength) {
+         $word .= substr($weightedcharlist, int(rand($charlistlength)), 1);
+      }
+
+      $self->addWord($word);
+   }
+}
+
+
+sub addPseudo {
+   my $self = shift;
+   my $count = shift;
+
+   my $vowelsfile = 'vowels.txt';
+   my $consonantsfile = 'consonants.txt';
+
+   open(VWLS, $vowelsfile) or
+      die "Unable to read vowels list";
+
+   my @vowels = <VWLS>;
+   chomp(@vowels);
+   close(VWLS);
+
+   my $vcount = scalar(@vowels);
+   ($vcount > 2) or 
+      die "Not enough vowels in list";
+
+
+   open(CNSNTS, $consonantsfile) or
+      die "Unable to read consonants list";
+
+   my @consonants = <CNSNTS>;
+   chomp(@consonants);
+   close(CNSNTS);
+ 
+   my $ccount = scalar(@consonants);
+   ($ccount > 2) or
+      die "Not enough consonants in list";
+
+   for (my $i = 0; $i < $count; $i++) {
+      # choose approximate word length less than but not equal to the maximum
+
+      my $wordlength = int(rand($self->{maxlength} - $self->{minlength})) + $self->{minlength};
+      my $word = '';
+
+      my $wantvowel = (int(rand(2)) > 0);
+      # choose if starting with vowel element  or consonant element
+
+      # alternate between vowel and consonant elements until the target word length is reached or exceeded
+      while(length($word) < $wordlength) {
+         if ($wantvowel) {
+            $word .= $vowels[int(rand($vcount))]; 
+         } else {
+            $word .= $consonants[int(rand($ccount))];
+         }
+
+         $wantvowel = not $wantvowel;
+      }
+      
+      # truncate the word to the maximum length
+      $word = substr($word, 0, $self->{maxlength});
+      $self->addWord($word);
+   }
+}
+    
+
+sub addWord {
+   my $self = shift;
+   my $word = shift;
+   push(@{$self->{testwords}}, lc($word));
+   $self->{size}++;
+}
+
+
+sub chooseWord {
+   my $self = shift;
+   my $prevword = shift;
+
+   my $word;
+   my $maxtries = 5;
+
+   ($self->{size} > 0) or
+      return '='; # default if list is empty
+
+   for (1 .. $maxtries) {
+      $word = $self->{testwords}->[int(rand($self->{size} - 0.0001))];
+      last if ($word ne $prevword); # try to avoid consecutive duplicates
+   }
+
+   return $word;
+}
+
+
+sub plainEnglishWeights {
+   my $self = shift;
+   my $charset = shift;
+
+   my $xweights = '';
+
+   # use an approximate discrete frequency distribution
+   foreach (split(//, $charset)) {
+      if (/[e]/) {$xweights .= $_ x 11;}
+      elsif (/[taoin]/) {$xweights .= $_ x 7;}
+      elsif (/[shr]/) {$xweights .= $_ x 5;}
+      elsif (/[dl]/) {$xweights .= $_ x 3;}
+      elsif (/[cfghpuwy]/) {$xweights .= $_;}
+   }
+
+   return $xweights;
+}
+
+1;
+__END__
+
 use Tk::After;
 use IO::Handle;
 use Time::HiRes qw(time usleep);
@@ -14,9 +175,7 @@ use charcodes; # definitions of characters as dit-dah sequences
 our %charcodes;
 
 use dialogfields;
-use testwordgenerator;
 
-my $twg; # instance of test word generator
 # /var/tmp is on a tmpfs; /tmp is not
 my $mp2readyfile = '/var/tmp/mp2ready.txt';
 unlink($mp2readyfile) if -f $mp2readyfile;
@@ -58,6 +217,10 @@ my @testwordstats;
 
 my @subdictionary;
 
+my @qdictionary;
+
+my $qdictsize = scalar(@qdictionary);
+
 my %histogram = (); # frequency of characters used
 my %reactions = (); # cumulative reaction time for each character
 my %histogram2 = (); # frequency of character position
@@ -65,6 +228,22 @@ my %reactions2 = (); # cumulative reaction time for each character position
 my @positioncnt = (); # characters to recognise by position in word
 my @positionsuccess = (); # characters correctly identified by position in word
  
+my @edictionary = ();
+
+if (open(WL, "wordlist.txt")) { 
+   while (my $word = <WL>) {
+      chomp $word;
+      $word =~ s/ //g;
+      push(@edictionary, lc($word));
+   }
+
+   close(WL);
+}
+
+my $edictsize = scalar(@edictionary);
+
+my @dictionary;
+
 my $wpm = $ARGV[0];
 
 (defined $wpm and $wpm > 0 ) or
@@ -84,6 +263,7 @@ my $weightedkeylist; # can include repeats of common characters
 
 my $automode; # if set then each keypress is checked against the previously generated character.
 my $prevauto = ''; # If entered key matches this then another random character is generated, otherwise the last one is repeated
+my $usedict; 
 
 my $w = MainWindow->new();
 
@@ -127,13 +307,11 @@ sub populatemainwindow {
    $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{setexweights()}, '');
    $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1, undef, undef, '');
    $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0, undef, undef, '');
-   $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1, undef, undef, '');
 
-   $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
+   $mwdf->addEntryField('Maximum Sample Size', 'dictsizemax', 40, 0, undef, undef, 'locked');
    $mwdf->addEntryField('Dictionary Sample Size', 'dictsize', 40, 9999, undef, undef, '');
    $mwdf->addEntryField('Dictionary Sample Offset', 'dictoffset', 40, 0, undef, undef, '');
    $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '', undef, sub{setdictsizes()}, '');
@@ -150,15 +328,26 @@ sub populatemainwindow {
    $mwdf->addButtonField('Play', 'play',  'p', sub{playText($d->Contents)}, '');
    $mwdf->addButtonField('Quit', 'quit',  'q', sub{if ($automode) {abortAuto()} else {$w->destroy}}, '');
 
-   setexweights();
+setexweights();
+
 }
 
+
 sub setexweights {
+   my $xweights = '';
+
    if ($e->{userelfreq}) {
-      $e->{xweights} = TestWordGenerator->plainEnglishWeights($e->{keylist}); 
-   } else {
-      $e->{xweights} = '';
+      # use an approximate discrete frequency distribution
+      foreach (split(//, $e->{keylist})) {
+         if (/[e]/) {$xweights .= $_ x 11;}
+         elsif (/[taoin]/) {$xweights .= $_ x 7;}
+         elsif (/[shr]/) {$xweights .= $_ x 5;}
+         elsif (/[dl]/) {$xweights .= $_ x 3;}
+         elsif (/[cfghpuwy]/) {$xweights .= $_;}
+       }
    }
+
+   $e->{xweights} = $xweights;
 }
 
 sub validateSettings {
@@ -167,16 +356,6 @@ sub validateSettings {
    $weightedkeylist = $e->{keylist} . $e->{xweights};
    $autoextraweights = ''; 
 
-   if (not $e->{minwordlength}) { # check if numeric and > 0
-      $e->{minwordlength} = 1;
-   }
-
-   if ((not $e->{maxwordlength}) or ($e->{maxwordlength} < $e->{minwordlength})) {
-      $e->{maxwordlength} = $e->{minwordlength};
-   }
-
-   $twg = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength});
-
    # build selected word list considering complexity and min/max word length
    @subdictionary = ();
 
@@ -184,32 +363,24 @@ sub validateSettings {
       $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
    }
 
-   unless ($e->{useqdict} or $e->{useedict} or $e->{userandom}) {
-      $e->{usepseudo} = 1; # ensure at least some words added
+   if ($e->{dictsizemax} > 0 and $e->{dictoffset} > $e->{dictsizemax} - 1) {
+      $e->{dictoffset} = $e->{dictsizemax} - 1;
    }
 
-   if ($e->{userandom}) {
-      $twg->addRandom($weightedkeylist, 200);
+   if ($e->{dictsizemax} > 0 and $e->{dictsize} > $e->{dictsizemax} - $e->{dictoffset}) {
+      $e->{dictsize} = $e->{dictsizemax} - $e->{dictoffset};
    }
 
-   if ($e->{usepseudo}) {
-      $twg->addPseudo(200);
-   }
+   $usedict = ($e->{useqdict} or $e->{useedict});
 
-   if ($e->{useqdict}) {
-      $twg->addDictionary('qsolist.txt', $e->{dictoffset}, $e->{dictsize});
+   if ($usedict) {
       $e->{userelfreq} = 0; # incompatible with using dictionary
+      
+      for (my $i = $e->{dictoffset}; $i < $e->{dictoffset} + $e->{dictsize}; $i++) {
+         push(@subdictionary, $dictionary[$i]);
+      }
    }
-
-   if ($e->{useedict}) {
-      $twg->addDictionary('wordlist.txt', $e->{dictoffset}, $e->{dictsize});
-      $e->{userelfreq} = 0; # incompatible with using dictionary
-   }
-
-   $e->{wordlistsize} = $twg->{size};
 }
-
-
    
 sub startAuto {
    validateSettings();
@@ -261,8 +432,27 @@ sub startAuto {
 }
 
 sub generateWord {
-    $prevword = $twg->chooseWord($prevword);
-    return $prevword;
+   my $word;
+   my $maxtries = 5;
+
+   for (1 .. $maxtries) {
+      if ($usedict) {
+         $word = $subdictionary[int(rand($e->{dictsize} - 0.0001))];
+      } else {
+         my $wordlength = int(rand($e->{maxwordlength} - $e->{minwordlength} + 1)) + $e->{minwordlength};
+
+         $word = '';
+
+         foreach (1 .. $wordlength) {
+            $word .= substr($weightedkeylist,int(rand(length($weightedkeylist))),1);
+         }
+      }
+
+      last if ($word ne $prevword); # try to avoid consecutive duplicates
+   }
+
+   $prevword = $word;
+   return $word;
 }
 
 sub autogen {
@@ -761,7 +951,7 @@ sub stopAuto {
    setControlState('normal');
 
    if ($e->{dictsize} == 0) {
-      $e->{dictsize} = 9999; # avoid lock ups 
+      $e->{dictsize} = $e->{dictsizemax}; # avoid lock ups 
    }
 
    unlink($mp2readyfile) if -f $mp2readyfile;
@@ -799,7 +989,70 @@ sub syncflush {
 }
 
 sub setdictsizes {
-   return; ## now done by TestWordGenerator module
+   if (not $e->{minwordlength}) { # check if numeric and > 0
+      $e->{minwordlength} = 1;
+   }
+
+   if ((not $e->{maxwordlength}) or ($e->{maxwordlength} < $e->{minwordlength})) {
+      $e->{maxwordlength} = $e->{minwordlength};
+   }
+
+# Build dictionary of requested length words from selected sources 
+
+   @dictionary = ();
+
+   if ($e->{useqdict}) {
+      foreach my $dictword (@qdictionary) {
+         addwordtodict($dictword, 1);
+      }
+   }
+
+   if ($e->{useedict}) {
+      foreach my $dictword (@edictionary) {
+         addwordtodict($dictword, 1);
+      }
+   }
+   
+   if (not @dictionary) {
+      # filtering was too narrow to find any words - try without requiring weighted characters to be used
+      if ($e->{useqdict}) {
+         foreach my $dictword (@qdictionary) {
+            addwordtodict($dictword, 0);
+         }
+      }
+
+      if ($e->{useedict}) {
+         foreach my $dictword (@edictionary) {
+            addwordtodict($dictword, 0);
+         }
+      }
+   }
+
+   $e->{dictsizemax} = @dictionary; # number of words
+   $e->{dictsize} = $e->{dictsizemax};
+}
+
+sub addwordtodict {
+   my $word = shift;
+   my $useweights = shift;
+
+   if (length($word) >= $e->{minwordlength} and
+       length($word) <= $e->{maxwordlength}) {
+
+     if ($useweights and $e->{xweights} ne '') {
+         # only add word if at least one of its characters appears in the xweights list
+         my @wordchars = split(//, $word);
+
+         foreach my $wordchar (@wordchars) {
+            if ($e->{xweights} =~ quotemeta($wordchar)) {
+               push @dictionary, $word;
+               last;
+            }
+         }
+      } else {
+         push @dictionary, $word;
+      }
+   }
 }
 
 sub populateresultswindow {
