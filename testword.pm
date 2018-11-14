@@ -1,4 +1,3 @@
-#!/usr/bin/perl 
 package TestWord;
 use strict;
 use warnings;
