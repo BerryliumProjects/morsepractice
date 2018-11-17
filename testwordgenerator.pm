@@ -65,41 +65,49 @@ sub addPseudo {
    my $self = shift;
    my $count = shift;
 
-   my ($vcount, @vowels) = readElements('vowels.txt');
-   my ($ccount1, @consonants1) = readElements('consonants1.txt');
-   my ($ccount2, @consonants2) = readElements('consonants2.txt');
-   my ($ccount3, @consonants3) = readElements('consonants3.txt');
+   my $vowels = readElements('vowels.txt'); # ref to 3 arrays
+   my $consonants = readElements('consonants.txt'); # ref to 3 arrays
 
    for (my $i = 0; $i < $count; $i++) {
       # choose approximate word length less than but not equal to the maximum
 
-      my $wordlength = int(rand($self->{maxlength} - $self->{minlength})) + $self->{minlength};
+      my $targetwordlength = int(rand($self->{maxlength} - $self->{minlength})) + $self->{minlength};
       my $word = '';
-
-      my $wantvowel = (int(rand(2)) > 0);
-      # choose if starting with vowel element  or consonant element
+      my $wordlength = 0;
+      my $wantvowel = (int(rand(2)) > 0); # choose initial type of element
 
       # alternate between vowel and consonant elements until the target word length is reached or exceeded
-      while(length($word) < $wordlength) {
-         if ($wantvowel) {
-            $word .= $vowels[int(rand($vcount))]; 
-         } elsif (length($word) == 0) {
-            $word .= $consonants1[int(rand($ccount1))];
-         } elsif (length($word) >= $wordlength-2) {
-            $word .= $consonants3[int(rand($ccount3))];
-         } else {
-            $word .= $consonants2[int(rand($ccount2))];
-         }
-
+      while($wordlength < $targetwordlength) {
+         my $elements = ($wantvowel ? $vowels : $consonants);
+         $word .= chooseElement($elements, $wordlength, $targetwordlength);
+         
          $wantvowel = not $wantvowel;
+         $wordlength = length($word);      
       }
       
-      # truncate the word to the maximum length
+      # truncate the word to the maximum length - assume first letter of final element is also ok at end of word 
       $word = substr($word, 0, $self->{maxlength});
       $self->addWord($word);
    }
 }
-    
+
+
+sub chooseElement {
+   my $elements = shift;
+   my $wordlength = shift;
+   my $targetwordlength = shift;
+
+   # determine if need an element suitable for the beginning / middle / end of a word
+   my $elementPosition = 
+      ($wordlength == 0) ? 'b' :
+      ($wordlength < $targetwordlength -2) ? 'm' :
+      'e';
+
+   my $elementList = $elements->{$elementPosition};
+   my $elementIndex = int(rand(scalar(@{$elementList})));
+   return $elementList->[$elementIndex];
+}
+
 
 sub addWord {
    my $self = shift;
@@ -112,18 +120,31 @@ sub addWord {
 sub readElements {
    my $file = shift;
 
+   my $elements = {b => [], m => [], e => []}; # lists suitable for beginning, middle and end of a word
+
    open(EFILE, $file) or
       die "Unable to read $file";
 
-   my @elements = <EFILE>;
-   chomp(@elements);
+   my @elementlines = <EFILE>;
+   chomp(@elementlines);
    close(EFILE);
 
-   my $ecount = scalar(@elements);
-   ($ecount > 2) or 
+   (@elementlines > 2) or 
       die "Not enough elements in $file";
 
-   return ($ecount, @elements);
+   foreach (@elementlines) {
+      my ($validPositions, $elementchars) = split(/\t/);
+
+      next unless (defined $elementchars);
+
+      foreach my $position ('b', 'm', 'e') {
+         if ($validPositions =~ $position) {
+            push(@{$elements->{$position}}, $elementchars); # add to appropriate list
+         }
+      }
+   }
+
+   return $elements;
 }
 
 

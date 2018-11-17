@@ -1,28 +1,28 @@
-a
-ai
-ar
-au
-aw
-ay
-e
-ee
-er
-eu
-ew
-ey
-i
-ia
-ie
-io
-ir
-o
-oa
-oe
-oi
-oo
-or
-oy
-u
-ue
-ur
-uy
+bme	a
+bm	ai
+bme	ar
+bm	au
+eme	aw	# w only allowed after certain vowels
+e	ay
+bme	e
+me	ee
+bme	er
+bm	eu
+bme	ew	# w only allowed after certain vowels
+bme	ey
+bme	i
+me	ia
+me	ie
+bme	io
+bme	ir
+bme	o
+bm	oa
+me	oe
+bm	oi
+bme	oo
+bme	or
+me	oy
+bm	u
+me	ue
+me	ur
+me	uy
