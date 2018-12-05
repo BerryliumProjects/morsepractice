@@ -92,7 +92,7 @@ print "Sampling rate: $bitrate\n";
 $pulsems = 1200/$wpm;
 
 $risetime = 3 / $tonefreq;
-$risetime = 0.02 if $risetime < 0.02;
+$risetime = 0.0075 if $risetime < 0.0075;
 $risetime = $pulsems/4000 if $risetime > $pulsems/4000;
 $risecnt = $risetime * $bitrate;
 
