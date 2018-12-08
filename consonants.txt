@@ -1,76 +1,75 @@
-bme	b
-m	bb
-bm	bl
-bm	br
-bme	c
-m	cc
-bme	ch
-me	ck
-bm	cl
-bm	cr
-bme	d
-m	dd
-m	dg
-bm	dr
-bme	f
-me	ff
-bm	fl
-bm	fr
-bme	g
-me	gg
-me	gh
-bm	gl
-bm	gn
-bm	gr
-bme	h
-bm	j
-bm	k
-b	kn
-bme	l	
-me	lf
-me	lk
-me	ll
-me	lm
-me	lp
-m	ls
-me	lt
-bme	m
-m	mm
-me	mp
-bme	n
-me	nd
-me	ng
-e	nk
-m	ns
-me	nt
-bme	p
-bme	ph
-bm	pl
-m	pp
-bm	pr
-bm	qu
-b	r	# other uses of r are included in vowel groups
-bme	s
-bm	sc
-bme	sh
-me	sk
-bm	sl
-bme	sm
-bm	sn
-bme	sp
-me	ss
-bme	st
-bm	sw
-bme	t
-bme	th
-bm	tr
-me	tt
-bm	tw
-bm	v
-b	w	# other uses of w are included in vowel groups
-bm	wh
-b	wr
-me	x
-b	y	# other uses of y are included in vowel groups
-bm	z
-me	zz
+bme	b	1
+m	bb	1
+bm	bl	1
+bm	br	1
+bme	c	1
+m	cc	1
+bme	ch	2
+me	ck	2
+bm	cl	1
+bm	cr	1
+bme	d	3
+m	dd	3
+m	dg	3
+bm	dr	3
+bme	f	1
+me	ff	1
+bm	fl	1
+bm	fr	1
+bme	g	1
+me	gg	1
+me	gh	2
+bm	gl	1
+bm	gn	2
+bm	gr	1
+bme	h	2
+bm	j	1
+bm	k	2
+b	kn	2
+bme	l	1
+me	lf	1
+me	lk	2
+me	ll	1
+me	lm	1
+me	lp	1
+m	ls	1
+me	lt	3
+bme	m	1
+m	mm	1
+me	mp	1
+bme	n	2
+me	nd	2
+me	ng	2
+e	nk	2
+m	ns	2
+me	nt	3
+bme	p	1
+bme	ph	2
+bm	pl	1
+m	pp	1
+bm	pr	1
+bm	qu	1
+b	r	1	# other uses of r are included in vowel groups
+bme	s	1
+bm	sc	1
+bme	sh	2
+me	sk	2
+bm	sl	1
+bme	sm	1
+bm	sn	2
+bme	sp	1
+me	ss	1
+bme	st	3
+bm	sw	1
+bme	t	3
+bme	th	3
+bm	tr	3
+me	tt	3
+bm	tw	3
+bm	v	1
+b	w	1	# other uses of w are included in vowel groups
+bm	wh	2
+b	wr	1
+me	x	1
+b	y	3	# other uses of y are included in vowel groups
+bm	z	1

@@ -133,13 +133,18 @@ sub readElements {
       die "Not enough elements in $file";
 
    foreach (@elementlines) {
-      my ($validPositions, $elementchars) = split(/\t/);
+      my ($validPositions, $elementchars, $elementcnt) = split(/\t/);
+      next unless (defined $elementcnt);
 
-      next unless (defined $elementchars);
+      unless ($elementcnt > 0) {
+         $elementcnt = 1;
+      }
 
       foreach my $position ('b', 'm', 'e') {
          if ($validPositions =~ $position) {
-            push(@{$elements->{$position}}, $elementchars); # add to appropriate list
+            foreach (1 .. $elementcnt) {
+               push(@{$elements->{$position}}, $elementchars); # add to appropriate list
+            }
          }
       }
    }
