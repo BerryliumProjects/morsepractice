@@ -175,11 +175,14 @@ sub plainEnglishWeights {
 
    # use an approximate discrete frequency distribution
    foreach (split(//, $charset)) {
-      if (/[e]/) {$xweights .= $_ x 11;}
-      elsif (/[taoin]/) {$xweights .= $_ x 7;}
-      elsif (/[shr]/) {$xweights .= $_ x 5;}
-      elsif (/[dl]/) {$xweights .= $_ x 3;}
-      elsif (/[cfghpuwy]/) {$xweights .= $_;}
+      if (/[e]/) {$xweights .= $_ x 10;}
+      elsif (/[t]/) {$xweights .= $_ x 7;}
+      elsif (/[ao]/) {$xweights .= $_ x 6;}
+      elsif (/[ins]/) {$xweights .= $_ x 5;}
+      elsif (/[hrw]/) {$xweights .= $_ x 4;}
+      elsif (/[dly]/) {$xweights .= $_ x 3;}
+      elsif (/[ck]/) {$xweights .= $_ x 2;}
+      elsif (/[fgmpu]/) {$xweights .= $_;}
    }
 
    return $xweights;
