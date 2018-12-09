@@ -179,15 +179,16 @@ sub plainEnglishWeights {
    my $xweights = '';
 
    # use an approximate discrete frequency distribution
+   # infrequent letters are given a base likelihood of 1% to aid practice
    foreach (split(//, $charset)) {
-      if (/[e]/) {$xweights .= $_ x 10;}
-      elsif (/[t]/) {$xweights .= $_ x 7;}
-      elsif (/[ao]/) {$xweights .= $_ x 6;}
-      elsif (/[ins]/) {$xweights .= $_ x 5;}
-      elsif (/[hrw]/) {$xweights .= $_ x 4;}
-      elsif (/[dly]/) {$xweights .= $_ x 3;}
-      elsif (/[ck]/) {$xweights .= $_ x 2;}
-      elsif (/[fgmpu]/) {$xweights .= $_;}
+      if (/[e]/) {$xweights .= $_ x 11;}
+      elsif (/[t]/) {$xweights .= $_ x 8;}
+      elsif (/[a]/) {$xweights .= $_ x 7;}
+      elsif (/[ino]/) {$xweights .= $_ x 6;}
+      elsif (/[hrs]/) {$xweights .= $_ x 5;}
+      elsif (/[dl]/) {$xweights .= $_ x 3;}
+      elsif (/[cu]/) {$xweights .= $_ x 2;}
+      elsif (/[fgmpwy]/) {$xweights .= $_;}
    }
 
    return $xweights;

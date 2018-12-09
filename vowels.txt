@@ -1,28 +1,28 @@
 bme	a	2
 bm	ai	2
 bme	ar	2
-bm	au	2
-bme	aw	2	# w only allowed after certain vowels
-e	ay	2
+bm	au	1
+bme	aw	1	# w only allowed after certain vowels
+e	ay	1
 bme	e	3
 bme	ea	3
 me	ee	3
-bme	er	3
-bm	eu	3
-bme	ew	3	# w only allowed after certain vowels
-e	ey	3
+bme	er	2
+bm	eu	1
+bme	ew	1	# w only allowed after certain vowels
+e	ey	1
 bme	i	2
 me	ia	2
 me	ie	3
 bme	io	2
 bme	ir	2
 bme	o	2
-bm	oa	2
-me	oe	3
-bm	oi	3
-bme	oo	2
-bme	or	2
-e	oy	2
+bm	oa	1
+me	oe	1
+bm	oi	2
+bme	oo	1
+bme	or	1
+e	oy	1
 bm	u	1
 me	ue	3
 me	ur	1
