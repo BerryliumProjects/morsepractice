@@ -353,17 +353,41 @@ sub checkchar {
    }
 }
 
+sub alignchars {
+   # if user entry is too short, insert blanks to realign to correct length
+   my $userinputref = shift;
+   my $teststatsref = shift;
+
+   my $testlen = scalar(@$teststatsref);
+   my $userlen = scalar(@$userinputref);
+
+   my $difpos = 0;	 
+   
+   if ($userlen < $testlen) {
+      # user has missed some characters - find first mismatch
+      for ($difpos = 0; $difpos < $userlen; $difpos++) { 
+         last if ($userinputref->[$difpos]->{ch} ne $teststatsref->[$difpos]->{ch});
+      }
+
+      # assume first mismatch is really a gap, and fill it
+      for ($userlen .. $testlen - 1) {
+         splice @$userinputref, $difpos, 0, {ch => '_', t => 0}; # no time recorded
+      }
+   }
+}
+
 sub markword { 
    # find characters in error and mark reactions
    my $userinputref = shift;
    my $teststatsref = shift;
+
+   my $testlen = scalar(@$teststatsref);
 
    my @testchars = ();
    my @userchars = ();
    my @usertimes = ();
    my @testtimes = ();
    my @testpulses = ();
-   my $difpos;
   
    my $startuserwordtime = 0;
 
@@ -397,24 +421,6 @@ sub markword {
       $d->insert('end', "$markuserword # [$marktestword] "); 
    }
  
-   my $testlen = scalar(@testchars);
-   my $userlen = scalar(@userchars);
-	    
-   if ($userlen < $testlen) {
-      # user has missed some characters - find first mismatch
-      for ($difpos = 0; $difpos < $userlen; $difpos++) { 
-         last if ($userchars[$difpos] ne $testchars[$difpos]);
-      }
-
-      # assume first mismatch is really a gap, and fill it
-      for ($userlen .. $testlen - 1) {
-         splice @userchars, $difpos, 0, '_';
-         splice @usertimes, $difpos, 0, 0; # no time recorded
-      }
-
-      $userlen = $testlen; # now padded to same length
-   }
-
    for (my $i = 0; $i < $testlen; $i++) {
       my $userchar = $userchars[$i];
       my $testchar = $testchars[$i];
@@ -556,6 +562,8 @@ sub marktest {
    # re-align words in case user missed a space - TO-DO
 
    for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
+      # re-align characters in words in case some missed
+      alignchars($userwords[$iw], $testwords[$iw]);
       markword($userwords[$iw], $testwords[$iw]);
    }
 }
