@@ -383,55 +383,35 @@ sub markword {
 
    my $testlen = scalar(@$teststatsref);
 
-   my @testchars = ();
-   my @userchars = ();
-   my @usertimes = ();
-   my @testtimes = ();
-   my @testpulses = ();
-  
    my $startuserwordtime = 0;
-
+   my $endtestwordtime = 0;
    my $markuserword = '';
    my $marktestword = '';
 
-   foreach my $userinput (@$userinputref) {
-      my $userchar = $userinput->{ch};
-      my $usertime = $userinput->{t};
-      push(@userchars, $userchar);
-      push(@usertimes, $usertime);
-      # note when user started to respond
-      $startuserwordtime = $usertime unless $startuserwordtime;
-      $markuserword .= $userchar unless $userchar eq ' ';
-   }
-
-   foreach my $teststatsitem (@$teststatsref) {
-      my $testchar = $teststatsitem->{ch};
-      my $testtime = $teststatsitem->{t};
-      my $testpulsecnt = $teststatsitem->{pcnt};
-      push(@testchars, $testchar);
-      push(@testtimes, $testtime);
-      push(@testpulses, $testpulsecnt);
-      $marktestword .= $testchar unless $testchar eq ' ';
-   }
-
-   if ($markuserword eq $marktestword) {
-      $successes++;
-      $d->insert('end', "$marktestword ");
-   } else {
-      $d->insert('end', "$markuserword # [$marktestword] "); 
-   }
- 
    for (my $i = 0; $i < $testlen; $i++) {
-      my $userchar = $userchars[$i];
-      my $testchar = $testchars[$i];
-      my $endchartime = $testtimes[$i];
-      my $testpulsecnt = $testpulses[$i];
+      my $userinput = $userinputref->[$i];
+      my $teststatsitem = $teststatsref->[$i];
+
+      my $userchar = $userinput->{ch};
+      my $testchar = $teststatsitem->{ch};
+      my $endchartime = $teststatsitem->{t};
+      my $testpulsecnt = $teststatsitem->{pcnt};
+
       my $testcharduration = $testpulsecnt * $pulsetime;
-      my $usertime = $usertimes[$i];
+      my $usertime = $userinput->{t};
       my $reaction = $usertime - $endchartime;
 
       $pulsecount += $testpulsecnt; # for  whole session
       $totalcharcount++; # count spaces as chars
+
+      if (not $e->{measurecharreactions}) {
+         # note when user started to respond and when end of word was detectable
+         $startuserwordtime = $usertime unless $startuserwordtime;
+         $endtestwordtime = $endchartime;
+      }
+
+      $markuserword .= $userchar unless $userchar eq ' ';
+      $marktestword .= $testchar unless $testchar eq ' ';
 
       if ($testchar ne ' ') {
          $nonblankcharcount++;
@@ -495,7 +475,7 @@ sub markword {
 
    # if in word recognition mode, note reaction time to start entering word
    if (not $e->{measurecharreactions}) {
-      my $wordreaction = $startuserwordtime - $testtimes[$testlen - 1];
+      my $wordreaction = $startuserwordtime - $endtestwordtime;
 
       if ($wordreaction > -3 and $wordreaction < 3) { # ignore if either time is missing
          if (exists $histogram2{-2}) {
@@ -508,6 +488,13 @@ sub markword {
 
          printf "Word:  %i\n",  $wordreaction * 1000 + 0.5;
       }
+   }
+
+   if ($markuserword eq $marktestword) {
+      $successes++;
+      $d->insert('end', "$marktestword ");
+   } else {
+      $d->insert('end', "$markuserword # [$marktestword] "); 
    }
 }
 
