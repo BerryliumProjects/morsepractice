@@ -29,6 +29,7 @@ my $mp2statsfile = '/var/tmp/mp2stats.txt';
 my $morseplayer = "./morseplayer2.pl"; 
 
 my $starttime;
+my $duration;
 my $successes;
 my $autoextraweights = '';
 my $abortpendingtime = 0;
@@ -96,11 +97,6 @@ my $d; # exercisetext control ref, set by populatemainwindow
 populatemainwindow();
 setdictsizes(); # based on what dictionaries have been selected
 validateSettings();
-
-my $rw;
-# share as global variables for general access
-my $rwdf;
-my $re;
 
 $w->MainLoop();
 
@@ -274,13 +270,13 @@ sub checkchar {
    my $ch = shift;
 
    return unless ($automode);
+   $duration = time() - $starttime;
 
    $ch = lc($ch);
    $ch =~ s/\r/ /; # newline should behave like space as word terminator
 
    if ($ch ne '') { # ignore empty characters (e.g. pressing shift)
       my $thischtime = time();
-      my $duration = time() - $starttime;
 
       if ($ch eq "\b") {
          if ($e->{allowbackspace} and $userword ne '') {
@@ -670,13 +666,25 @@ sub stopAuto {
 
    syncflush();
 
-   $rw = $w->Toplevel(-title=>'Results'); # results window
+   if ($starttime > 0) {
+      marktest();
+      showresults();
+      $starttime = undef;
+   }
 
-   # share as global variables for general access
-   $rwdf = DialogFields->init($rw);
-   $re = $rwdf->entries; # gridframe control values
-   populateresultswindow();
-   marktest();
+   setControlState('normal');
+
+   if ($e->{dictsize} == 0) {
+      $e->{dictsize} = 9999; # avoid lock ups 
+   }
+
+   unlink($mp2readyfile) if -f $mp2readyfile;
+}
+
+sub showresults {
+   my $rw = $w->Toplevel(-title=>'Results'); # results window
+   my $rwdf = DialogFields->init($rw);
+   populateresultswindow($rwdf);
 
    # statistics used: 
    #   words:  testwordcnt, successes
@@ -684,33 +692,27 @@ sub stopAuto {
    #   pulses: pulsecount
    #   reactions: reactionsbychar, reactionsbypos - reactions recorded for bad chars but not missed chars
 
-   my $results = '';
+   my $successrate = ($testwordcnt ? $successes / $testwordcnt : 0);
+   my $missedcharcnt = counthistogram($missedchars);
+   my $mistakencharcnt = counthistogram($mistakenchars);
+   my $charsuccessrate = ($nonblankcharcount ? 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount : 0);
+   my $avgpulsecnt = ($totalcharcount ? $pulsecount / $totalcharcount : 0);
 
-   if ($starttime > 0) {
-      my $successrate = ($testwordcnt ? $successes / $testwordcnt : 0);
-      my $missedcharcnt = counthistogram($missedchars);
-      my $mistakencharcnt = counthistogram($mistakenchars);
-      my $charsuccessrate = ($nonblankcharcount ? 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount : 0);
-      my $avgpulsecnt = ($totalcharcount ? $pulsecount / $totalcharcount : 0);
-      my $duration = time() - $starttime;
-
-      $re->{duration} = sprintf('%i', $duration);
-      $re->{wordreport} = sprintf('%i%% (%i / %i)', $successrate * 100, $successes, $testwordcnt);
-      $re->{charreport} = sprintf('%i%% (%i missed, %i wrong / %i)', $charsuccessrate * 100, $missedcharcnt, $mistakencharcnt, $nonblankcharcount);
-      $re->{missedchars} = join('', sort(keys(%{$missedchars->{count}})));
-      $re->{mistakenchars} = join('', sort(keys(%{$mistakenchars->{count}})));
-      $re->{pariswpm} = sprintf('%.1f', ($pulsecount / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
-      $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
-      $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
-      $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $pulsetime / 2 * 100); # as percentage
-      $starttime = undef;
-   }
-  
+   my $re = $rwdf->entries; # gridframe control values
+   $re->{duration} = sprintf('%i', $duration);
+   $re->{wordreport} = sprintf('%i%% (%i / %i)', $successrate * 100, $successes, $testwordcnt);
+   $re->{charreport} = sprintf('%i%% (%i missed, %i wrong / %i)', $charsuccessrate * 100, $missedcharcnt, $mistakencharcnt, $nonblankcharcount);
+   $re->{missedchars} = join('', sort(keys(%{$missedchars->{count}})));
+   $re->{mistakenchars} = join('', sort(keys(%{$mistakenchars->{count}})));
+   $re->{pariswpm} = sprintf('%.1f', ($pulsecount / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
+   $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
+   $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
+   $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $pulsetime / 2 * 100); # as percentage
+ 
+ 
+   # Report slowest average reaction times by character
    my %avgreactionsbychar = %{gethistogramaverages($reactionsbychar)};
    my @worstchars = sort {$avgreactionsbychar{$b} <=> $avgreactionsbychar{$a}} (keys %avgreactionsbychar);
-
-   my %avgreactionsbypos = %{gethistogramaverages($reactionsbypos)};
-   my @worstcharpos = sort keys %avgreactionsbypos;
 
    my $worstcharsreport = '';
 
@@ -722,27 +724,33 @@ sub stopAuto {
          $autoextraweights .= $ch; # practice slowest chars more in future 
          last if ($worstcount++ > 4);
       }
-
    }
+
+   $rwdf->{controls}->{worstchars}->Contents($worstcharsreport);
+
+   # Report average reaction times by position in word
+   my %avgreactionsbypos = %{gethistogramaverages($reactionsbypos)};
+   my @worstcharpos = sort keys %avgreactionsbypos;
 
    my $worstcharposreport = '';
 
    if ($e->{measurecharreactions}) {
       if (@worstcharpos) {
-
          foreach my $pos (@worstcharpos) {
             $worstcharposreport .= sprintf ("\t%s\t%i ms\n", $pos, $avgreactionsbypos{$pos} * 1000 + 0.5);
          }
       }
    } else {
-      my $wordspacepulses = 4 * (1 + int($e->{extrawordspaces}));
-      my $wordspacetimems = int($wordspacepulses * $pulsetime * 1000 + 0.5);
+      my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * $pulsetime;
       # show reactions from earliest opportunity to detect end of word, not from end of gap
-      $worstcharposreport .= sprintf("Word start\t%i ms\n", $avgreactionsbypos{-2} + $wordspacetimems);
-      $worstcharposreport .= sprintf("Word end  \t%i ms\n", $avgreactionsbypos{-1} + $wordspacetimems);
-      $worstcharposreport .= sprintf("Space time\t%i ms\n", $wordspacetimems);
+      $worstcharposreport .= sprintf("Word start\t%i ms\n", ($avgreactionsbypos{-2} + $wordspacetime) * 1000 + 0.5);
+      $worstcharposreport .= sprintf("Word end  \t%i ms\n", ($avgreactionsbypos{-1} + $wordspacetime) * 1000 + 0.5);
+      $worstcharposreport .= sprintf("Space time\t%i ms\n", $wordspacetime * 1000 + 0.5);
    }
 
+   $rwdf->{controls}->{worstcharpos}->Contents($worstcharposreport);
+
+   # Report success rate by position in word
    my %avgsuccessbypos = %{gethistogramaverages($successbypos)};
 
    my $positionsuccessreport = '';
@@ -752,17 +760,7 @@ sub stopAuto {
       $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $successbypos->{total}->{$pos}, $successbypos->{count}->{$pos});
    }
 
-
-   $rwdf->{controls}->{worstchars}->Contents($worstcharsreport); # temporary synopsis
-   $rwdf->{controls}->{worstcharpos}->Contents($worstcharposreport); # temporary synopsis
    $rwdf->{controls}->{positionsuccesses}->Contents($positionsuccessreport); 
-   setControlState('normal');
-
-   if ($e->{dictsize} == 0) {
-      $e->{dictsize} = 9999; # avoid lock ups 
-   }
-
-   unlink($mp2readyfile) if -f $mp2readyfile;
 }
 
 sub autoweight {
@@ -801,6 +799,8 @@ sub setdictsizes {
 }
 
 sub populateresultswindow {
+   my $rwdf = shift;
+
    $rwdf->addEntryField('Duration', 'duration', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Word success rate', 'wordreport', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Character success rate', 'charreport', 30, undef, undef, undef, '');
@@ -815,6 +815,6 @@ sub populateresultswindow {
    $rwdf->addWideTextField('Reactions by position:', 'worstcharpos', 10, 35, '', undef, undef, '');
    $rwdf->addWideTextField('Success rate by position:', 'positionsuccesses', 10, 35, '', undef, undef, '');
 
-   $rwdf->addButtonField('OK', 'ok',  undef, sub{$rw->destroy}, '');
+   $rwdf->addButtonField('OK', 'ok',  undef, sub{$rwdf->{w}->destroy}, '');
 }
 
