@@ -46,8 +46,6 @@ my $prevword = '';
 my $pulsetime;
 my $extracharpausetime;
 
-my @chtimes = ();
-
 my @alluserinput = ();
 my $userwordcnt;
 my $testwordcnt;
@@ -418,7 +416,8 @@ sub markword {
    my $endtestwordtime = 0;
    my $markuserword = '';
    my $marktestword = '';
-
+   my $prevusertime; # initially undef
+ 
    for (my $i = 0; $i < $testlen; $i++) {
       my $userinput = $userinputref->[$i];
       my $teststatsitem = $teststatsref->[$i];
@@ -431,6 +430,14 @@ sub markword {
       my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
       my $reaction = $usertime - $endchartime;
+
+      my $typingtimems = '';
+
+      if (defined $prevusertime and $prevusertime > 0 and $usertime > 0) {
+         $typingtimems = int(($usertime - $prevusertime) * 1000);
+      }
+
+      $prevusertime = $usertime;
 
       $pulsecount += $testpulsecnt; # for  whole session
       $totalcharcount++; # count spaces as chars
@@ -472,7 +479,7 @@ sub markword {
          my $histcharindex = ($testchar eq ' ') ? '>' : $testchar; # for legibility
          my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
          my $testchardurationms = int($testcharduration * 1000 + 0.5);
-	 print "$testchar ($testchardurationms), $userchar, $reactionms\n";
+	 print "$testchar ($testchardurationms), $userchar, $reactionms, $typingtimems\n";
 
          if ($e->{measurecharreactions}) {
             buildhistogram($reactionsbychar, $histcharindex, $reaction);
@@ -565,8 +572,6 @@ sub marktest {
 
 sub playword {
    my $word = shift;
-
-   @chtimes = ();
 
    if ($e->{maxwordlength} == 1) {
       playchar($word);
