@@ -77,7 +77,7 @@ if (defined $ARGV[6] and $ARGV[6] eq '-t') {
 # adjust inter-word space length
 
 if ($extrawordspaces > 0 and $extrawordspaces < 50) {
-    $charcodes{' '} .= (' ' x $extrawordspaces);
+    $charcodes{' '} .= ('  ' x $extrawordspaces);
 }
 
 my @keylist = keys(%charcodes);

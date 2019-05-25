@@ -427,6 +427,11 @@ sub markword {
       my $endchartime = $teststatsitem->{t};
       my $testpulsecnt = $teststatsitem->{pcnt};
 
+      if ($testchar eq ' ') {
+         # measure reaction from the end of a standard space
+         $endchartime -= int($e->{extrawordspaces}) * 4 * $pulsetime;
+      }
+
       my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
       my $reaction = $usertime - $endchartime;
@@ -747,9 +752,9 @@ sub showresults {
       }
    } else {
       my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * $pulsetime;
-      # show reactions from earliest opportunity to detect end of word, not from end of gap
-      $worstcharposreport .= sprintf("Word start\t%i ms\n", ($avgreactionsbypos{-2} + $wordspacetime) * 1000 + 0.5);
-      $worstcharposreport .= sprintf("Word end  \t%i ms\n", ($avgreactionsbypos{-1} + $wordspacetime) * 1000 + 0.5);
+      # reactions are from earliest opportunity to detect end of word, not from end of gap if extra spaces have been inserted
+      $worstcharposreport .= sprintf("Word start\t%i ms\n", $avgreactionsbypos{-2} * 1000 + 0.5);
+      $worstcharposreport .= sprintf("Word end  \t%i ms\n", $avgreactionsbypos{-1} * 1000 + 0.5);
       $worstcharposreport .= sprintf("Space time\t%i ms\n", $wordspacetime * 1000 + 0.5);
    }
 
