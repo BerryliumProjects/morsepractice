@@ -613,7 +613,7 @@ sub generateText {
       $text .= generateWord() . ' ';
    }
 
-  chop($text); # remove final blank 
+#  chop($text); # remove final blank 
   return $text;
 }
 
