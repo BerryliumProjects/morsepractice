@@ -122,6 +122,8 @@ sub populatemainwindow {
    $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0, undef, sub{setdictsizes()}, '');
+   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0, undef, sub{setdictsizes()}, '');
+   $mwdf->addCheckbuttonField('Use International Callsigns', 'useicalls',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1, undef, undef, '');
 
    $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
@@ -175,7 +177,7 @@ sub validateSettings {
       $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
    }
 
-   unless ($e->{useqdict} or $e->{useedict} or $e->{userandom}) {
+   unless ($e->{useqdict} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls}) {
       $e->{usepseudo} = 1; # ensure at least some words added
    }
 
@@ -195,6 +197,14 @@ sub validateSettings {
    if ($e->{useedict}) {
       $twg->addDictionary('wordlist.txt', $e->{dictoffset}, $e->{dictsize});
       $e->{userelfreq} = 0; # incompatible with using dictionary
+   }
+
+   if ($e->{usescalls}) {
+      $twg->addCallsign(0, 200);
+   }
+
+   if ($e->{useicalls}) {
+      $twg->addCallsign(1, 50);
    }
 
    $e->{wordlistsize} = $twg->{size};

@@ -60,7 +60,6 @@ sub addRandom {
    }
 }
 
-
 sub addPseudo {
    my $self = shift;
    my $count = shift;
@@ -87,6 +86,83 @@ sub addPseudo {
       
       # truncate the word to the maximum length - assume first letter of final element is also ok at end of word 
       $word = substr($word, 0, $self->{maxlength});
+      $self->addWord($word);
+   }
+}
+
+
+sub addCallsign {
+   my $self = shift;
+   my $international = shift;
+   my $count = shift;
+
+   my @alpha;
+  
+   foreach ('a' .. 'z') {
+      push @alpha, $_;
+   }
+
+   my @num;
+
+   foreach ('0' .. '9') {
+      push @num, $_;
+   }
+
+   my @alphanum = @alpha;
+   push @alphanum, @num;
+
+   for (my $i = 0; $i < $count; $i++) {
+      my @prefixes;
+
+      for (my $j = 0; $j<2; $j++) {
+         my $prefix = $alphanum[int(rand(36))];
+         if ($prefix =~ /\d/) {
+            # prefixes starting with a digit must also include a letter
+            $prefix .= $alpha[int(rand(26))];
+         } elsif (rand(100) > 80) {
+            # prefixes starting with a letter may be length 1 or 2
+            $prefix .= $alphanum[int(rand(36))];
+         }
+ 
+         push @prefixes, $prefix;
+      }
+
+      my $word = $prefixes[0];
+
+      if ($international) {
+         # extra operating country prefix
+         $word .= '/' . $prefixes[1];
+      }
+
+      # rest of local callsign
+      $word .= $num[int(rand(10))];
+      $word .= $alpha[int(rand(26))];
+      $word .= $alpha[int(rand(26))];
+      
+      if (rand(100) > 25) {
+         # make some callsigns include only 2 serial characters
+         $word .= $alpha[int(rand(26))];
+      }
+
+      my $suffixpc = rand(100);
+
+      if ($suffixpc > 80) {
+         # portable
+         $word .= '/p'
+      } elsif ($suffixpc > 70) {
+         # mobile
+         $word .= '/m'
+      } elsif ($suffixpc > 65) {
+         # alternative qth
+         $word .= '/a'
+      } elsif ($suffixpc > 63) {
+         # maritime mobile
+         $word .= '/mm'
+      } elsif ($suffixpc > 60) {
+         # Jota
+         $word .= '/j'
+      } # otherwise no suffix
+
       $self->addWord($word);
    }
 }

@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>4;
+use Test::Simple tests=>7;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -33,4 +33,16 @@ foreach (sort keys %h) {
    $f = int(100.0 * $h{$_} / $tot + 0.5);
    print "$_\t$f\n";
 }
+
+$w = TestWordGenerator->new(4,10);
+
+ok (defined($w), '$w defined');
+
+$w->addCallsign(0, 3);
+ok ($w->{size} == 3, '3 standard callsigns added');
+
+$w->addCallsign(1, 3);
+ok ($w->{size} == 6, '3 international callsigns added');
+
+print Dumper $w;
 
