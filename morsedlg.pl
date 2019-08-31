@@ -107,6 +107,7 @@ sub populatemainwindow {
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2, undef, undef, '');
    $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1, undef, sub{setdictsizes()}, '');
    $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9, undef, sub{setdictsizes()}, '');
+   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0, undef, undef, '');
    $mwdf->addEntryField('Character WPM', 'wpm', 40, $wpm, 'w', undef, '');
    $mwdf->addEntryField('Effective WPM', 'effwpm', 40, $effwpm, undef, undef, '');
    $mwdf->addEntryField('Note Pitch', 'pitch', 40, $pitch, undef, undef, '');
@@ -168,7 +169,7 @@ sub validateSettings {
       $e->{maxwordlength} = $e->{minwordlength};
    }
 
-   $twg = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength});
+   $twg = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
 
    # build selected word list considering complexity and min/max word length
    @subdictionary = ();

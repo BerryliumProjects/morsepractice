@@ -8,7 +8,11 @@ sub new {
    my $class = shift;
    my $minlength = shift;
    my $maxlength = shift;
-   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, size => 0};
+   my $repeats = shift;
+
+   $repeats = 0 unless defined($repeats);
+
+   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, repeats => $repeats, size => 0, queue => [] };
    bless($self, $class);
    return $self;
 }
@@ -239,12 +243,26 @@ sub chooseWord {
    ($self->{size} > 0) or
       return '='; # default if list is empty
 
-   for (1 .. $maxtries) {
-      $word = $self->{testwords}->[int(rand($self->{size} - 0.0001))];
-      last if ($word ne $prevword); # try to avoid consecutive duplicates
+   if (@{$self->{queue}} == 0) {
+      my $phrase = '';
+
+      for (1 .. $maxtries) {
+         $phrase = $self->{testwords}->[int(rand($self->{size} - 0.0001))];
+         last if ($phrase=~/ / or $phrase ne $prevword); # try to avoid consecutive duplicates of single words
+      }
+
+      if ($phrase=~/ /) {
+         foreach my $word (split(/ /, $phrase)) {
+            push @{$self->{queue}}, $word;
+         }
+      } else { # form a phrase by repeating single word if required
+         for (my $reps = 0; $reps <= $self->{repeats}; $reps++) {
+            push @{$self->{queue}}, $phrase;
+         }
+      }
    }
 
-   return $word;
+   return pop @{$self->{queue}};
 }
 
 

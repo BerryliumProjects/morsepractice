@@ -1,15 +1,27 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>7;
+use Test::Simple tests=>9;
 use testwordgenerator;
 use Data::Dumper;
 
-$w = TestWordGenerator->new(4,8);
+$w = TestWordGenerator->new(4,8,1);
 
 ok (defined($w), '$w defined');
 
 $w->addRandom ('abcd', 3);
 ok ($w->{size} == 3, '3 random added');
+
+$word = '';
+@words = ();
+
+for (1..3) {
+  $word = $w->chooseWord($w);
+  push @words, $word;
+  print "Repeated word test: $word\n";
+}
+
+ok ($words[0] eq $words[1], 'Word repeated ok');
+ok ($words[1] ne $words[2], 'Word was not duplicated');
 
 $w->addDictionary('qsolist.txt',0,5);
 
@@ -45,4 +57,5 @@ $w->addCallsign(1, 3);
 ok ($w->{size} == 6, '3 international callsigns added');
 
 print Dumper $w;
+
 
