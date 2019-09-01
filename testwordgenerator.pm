@@ -28,10 +28,15 @@ sub addDictionary {
 
    if (open(WL, $wordfile)) {
       while (defined(my $word = <WL>)) {
+         # trim leading/trailing space but keep embedded spaces within phrases
          chomp $word;
-         $word =~ s/ //g;
-
-         if (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength}) { 
+         $word =~ s/^ +//;
+         $word =~ s/ +$//;
+         my @firstword = $word =~ /(\S+)/; # list context needed
+         
+# for phrases, apply the length constraints to the first word only
+         # the context will then prepare for any longer words later
+         if (length($firstword[0]) >= $self->{minlength} and length($firstword[0]) <= $self->{maxlength}) { 
             $c++;
             if ($c > $offset) {
                $self->addWord($word);
@@ -262,7 +267,7 @@ sub chooseWord {
       }
    }
 
-   return pop @{$self->{queue}};
+   return shift @{$self->{queue}};
 }
 
 

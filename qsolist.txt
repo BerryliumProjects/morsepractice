@@ -1,4 +1,5 @@
-5nn
+ur 5nn
+rprt 579
 73
 agn
 ant
@@ -9,13 +10,13 @@ call
 cl
 cpy
 cq
-cuagn
+hpe cuagn
 cud
 cul
 de
 doublet
 dx
-elecraft
+rig is elecraft
 element
 es
 fer
@@ -26,10 +27,10 @@ gn
 hpe
 hr
 hw?
-icom
+rig icom
 inverted
 is
-kenwood
+rig is kenwood
 loop
 mni
 name
@@ -47,19 +48,19 @@ qrs
 qso
 qsy
 qth
-rain
+wx rain
 rig
 rprt
 rst
 rx
 sdr
-sigs
+ur sigs
 sk
 sked
 sn
 sri
 ssb
-sunny
+wx sunny
 temp
 test
 that
@@ -70,14 +71,14 @@ tnx
 tu
 tx
 ur
-vertical
+ant vertical
 vy
 watts
-windy
+wx windy
 wud
 wx
 xcvr
 xmtr
 xyl
-yaesu
-yagi
+rig yaesu
+ant yagi

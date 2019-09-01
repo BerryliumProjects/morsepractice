@@ -4,7 +4,7 @@ use Test::Simple tests=>9;
 use testwordgenerator;
 use Data::Dumper;
 
-$w = TestWordGenerator->new(4,8,1);
+$w = TestWordGenerator->new(3,6,1);
 
 ok (defined($w), '$w defined');
 
