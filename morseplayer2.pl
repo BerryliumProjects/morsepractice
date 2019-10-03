@@ -89,23 +89,21 @@ $bitrate = $svr->rate;
 #$ratecorrection = 1; # 9600/8000; # for some reason audio plays slower than it should by this factor 
 print "Sampling rate: $bitrate\n";
 
-$pulsems = 1200/$wpm;
+$pulse = 1.2/$wpm;
 
-$risetime = 3 / $tonefreq;
+$risetime = 3.0 / $tonefreq;
 $risetime = 0.0075 if $risetime < 0.0075;
-$risetime = $pulsems/4000 if $risetime > $pulsems/4000;
+$risetime = $pulse/4 if $risetime > $pulse/4;
 $risecnt = $risetime * $bitrate;
 
-#$charpause = 12000 * (1/$effwpm - 1/$wpm);
-$extracharms = 60000 / 7 * (1 / $effwpm - 1 / $wpm);
-$extracharms = 0 unless $extracharms > 0;
-$charpause = $pulsems * 2 + $extracharms;
+# average 5 letters + 1 space per standard word
+$extrachar = 60 / 6 * (1.0 / $effwpm - 1.0 / $wpm);
+$extrachar = 0 unless $extrachar > 0;
 
-
-print "WPM=$wpm, Effective WPM=$effwpm, pulsems=$pulsems, risetime=$risetime, charpause=$charpause\n";
+printf "WPM=%i, Effective WPM=%i, pulse=%ims, risetime=%ims\n", $wpm, $effwpm, $pulse*1000, $risetime*1000;
 
 $dotbeep = Audio::Data->new(rate=>$bitrate);
-$dotduration = 0.001 * $pulsems + $risetime; # time start/stop from "half amplitude" points
+$dotduration = $pulse + $risetime; # time start/stop from "half amplitude" points
 $dotbeep->tone($tonefreq * $ratecorrection, $dotduration / $ratecorrection, 0.5);
 
 @dotbeepdata = $dotbeep->data;
@@ -119,7 +117,7 @@ for ($i = 0; $i < $risecnt; $i++) {
 $dotbeep->data(@dotbeepdata);
 
 $dashbeep = Audio::Data->new(rate=>$bitrate);
-$dashduration = 0.001 * $dashweight * $pulsems + $risetime;
+$dashduration = $dashweight * $pulse + $risetime;
 $dashbeep->tone($tonefreq * $ratecorrection, $dashduration / $ratecorrection, 0.5);
 
 @dashbeepdata = $dashbeep->data;
@@ -133,33 +131,32 @@ for ($i = 0; $i < $risecnt; $i++) {
 $dashbeep->data(@dashbeepdata);
 
 $dotsilence = Audio::Data->new(rate=>$bitrate);
-$dotsilenceduration = 0.001 * $pulsems - $risetime;
+$dotsilenceduration = $pulse - $risetime;
 $dotsilence->silence($dotsilenceduration / $ratecorrection);
 
 my $wholedot = $dotbeep . $dotsilence;
 my $wholedash = $dashbeep . $dotsilence;
 
 $charsilence = Audio::Data->new(rate=>$bitrate);
-$charsilenceduration = 0.001 * $charpause;
-$charsilence->silence($charsilenceduration / $ratecorrection);
+$charsilence->silence($pulse * 2 / $ratecorrection);
 
+$extracharsilence = Audio::Data->new(rate=>$bitrate);
+$extracharsilence->silence($extrachar / $ratecorrection);
+
+# ensure at least 200ms of silence at end of playing sequence
 $bufferclearsilence = Audio::Data->new(rate=>$bitrate);
-$bufferclearsilenceduration = 0.2;
+$bufferclearsilenceduration = 0.2 - ($pulse * 2 * (1 + $extrawordspaces) + $extrachar);
+$bufferclearsilenceduration = 0.2 if $bufferclearsilenceduration < 0;
 $bufferclearsilence->silence($bufferclearsilenceduration / $ratecorrection);
 
 # get actual durations allowing for any rounding
 my $wholedotduration = $wholedot->duration * $ratecorrection;
 my $wholedashduration = $wholedash->duration * $ratecorrection;
 my $charsilenceduration = $charsilence->duration * $ratecorrection;
-my $bufferclearduration = $bufferclearsilence->duration * $ratecorrection;
+my $extracharsilenceduration = $extracharsilence->duration * $ratecorrection;
 
-printf("Sample durations: wholedot=%6.3f wholedash=%6.3f chargap=%6.3f\n",
-   $wholedotduration, $wholedashduration, $charsilenceduration);
-
-#@d = $dotbeepseq->data;
-#foreach (@d) {printf "%7.4f\n", $_} ;
-
-#exit;
+printf("Sample durations: wholedot=%5.3f wholedash=%5.3f chargap=%5.3f, extrachargap=%5.3f\n",
+   $wholedotduration, $wholedashduration, $charsilenceduration, $extracharsilenceduration);
 
 my $prevblkline;
 
@@ -218,6 +215,7 @@ while (<SI>) {
          }
       }   
 
+      playextraspace();
       print "\n" if $verbose;
       
       if ($ch eq ' ') {
@@ -236,10 +234,10 @@ while (<SI>) {
 
    # end of input line
    unless ($text) {
-      clearbuffer(); # allow to flush
       # record a notional end time of an interword space
-      my $notionalplayendtime = $expectedplayendtime + $charsilenceduration * 2;
+      my $notionalplayendtime = $expectedplayendtime + $charsilenceduration * 2 + $extracharsilenceduration;
       push @charendtimereports, " \t$notionalplayendtime\t4\n";
+      clearbuffer(); # allow to flush
    }
 
    unless ($literal and $chars=~/-|\./) { # literal mode only flushes after a blank line
@@ -297,9 +295,14 @@ sub playspace {
     $pulses += 2;
 }
 
+sub playextraspace {
+    safeplay($svr, $extracharsilence);
+    $expectedplayendtime += $extracharsilenceduration;
+}
+
 sub clearbuffer {
     print '|'  if $verbose;
     safeplay($svr, $bufferclearsilence);
-    $expectedplayendtime += $bufferclearduration;
+    $expectedplayendtime += $bufferclearsilenceduration;
 }
 

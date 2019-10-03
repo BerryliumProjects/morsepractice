@@ -157,7 +157,8 @@ sub setexweights {
 
 sub validateSettings {
    $pulsetime = 1.2 / $e->{wpm}; # a dit-mark or gap
-   $extracharpausetime = 60 / 7 * (1 / $e->{effwpm} - 1 / $e->{wpm});
+   # using standard average word length 5, 6 extra pauses per (word + space)
+   $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
    $weightedkeylist = $e->{keylist} . $e->{xweights};
    $autoextraweights = ''; 
 
@@ -439,8 +440,8 @@ sub markword {
       my $testpulsecnt = $teststatsitem->{pcnt};
 
       if ($testchar eq ' ') {
-         # measure reaction from the end of a standard space
-         $endchartime -= int($e->{extrawordspaces}) * 4 * $pulsetime;
+         # measure reaction from when next character would have been expected
+         $endchartime = $teststatsref->[$i-1]->{t};
       }
 
       my $testcharduration = $testpulsecnt * $pulsetime;
@@ -511,6 +512,7 @@ sub markword {
    }
 
    # if in word recognition mode, note reaction time to start entering word
+   # the end of the word can be detected as soon as the next expected element is absent
    if (not $e->{measurecharreactions}) {
       my $wordreaction = $startuserwordtime - $endtestwordtime;
 

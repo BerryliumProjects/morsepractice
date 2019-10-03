@@ -1,44 +1,34 @@
-ur 5nn
-rprt 579
-73
+73 es hpe cuagn =
 agn
 ant
-beam
-bk
-bug
-call
+ant inverted v =
+ant is 3 el beam =
+ant is small loop =
+ant vertical
+ant yagi
 cl
 cpy
 cq
-hpe cuagn
-cud
 cul
 de
-doublet
-dx
-rig is elecraft
-element
-es
-fer
-gd
-ge
+ge 
 gm
 gn
 hpe
 hr
 hw?
-rig icom
-inverted
-is
-rig is kenwood
 loop
 mni
-name
+mni tks fer call =
+name eric
+name heinrich
+name peter 
 ok
 om
 op
 pls
 power
+power 10w =
 pse
 pwr
 qrm
@@ -48,37 +38,43 @@ qrs
 qso
 qsy
 qth
-wx rain
 rig
+rig icom
+rig is elecraft pwr 50 watts =
+rig is kenwood =
+rig yaesu ft817 =
 rprt
+rprt 579 =
 rst
 rx
 sdr
-ur sigs
 sk
 sked
 sn
 sri
 ssb
-wx sunny
 temp
 test
 that
 the
 this
+thx
+tnx es gd dx=
 tks
 tnx
 tu
 tx
 ur
-ant vertical
+ur rprt 5nn =
+ur sigs 569 =
 vy
 watts
-wx windy
 wud
 wx
+wx rain temp 15c =
+wx sunny
+wx windy
 xcvr
 xmtr
 xyl
-rig yaesu
-ant yagi
+
