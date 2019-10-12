@@ -145,8 +145,7 @@ $extracharsilence->silence($extrachar / $ratecorrection);
 
 # ensure at least 200ms of silence at end of playing sequence
 $bufferclearsilence = Audio::Data->new(rate=>$bitrate);
-$bufferclearsilenceduration = 0.2 - ($pulse * 2 * (1 + $extrawordspaces) + $extrachar);
-$bufferclearsilenceduration = 0.2 if $bufferclearsilenceduration < 0;
+$bufferclearsilenceduration = 0.2;
 $bufferclearsilence->silence($bufferclearsilenceduration / $ratecorrection);
 
 # get actual durations allowing for any rounding
