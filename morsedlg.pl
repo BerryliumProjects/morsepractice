@@ -247,7 +247,7 @@ sub startAuto {
    syncflush();
    unlink($mp2statsfile);
 
-   $starttime = time();
+   $starttime = undef;
  
    if ($e->{syncafterword}) {   
       autogen();
@@ -280,6 +280,7 @@ sub checkchar {
    my $ch = shift;
 
    return unless ($automode);
+   $starttime = time() unless defined $starttime; # count from first response
    $duration = time() - $starttime;
 
    $ch = lc($ch);
@@ -297,6 +298,7 @@ sub checkchar {
       } else {
          if ($ch eq ' ') {
             # ignore a double space if less than 500ms between them
+
             if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
                $ch = '';
             } else {
@@ -692,7 +694,6 @@ sub stopAuto {
    if ($starttime > 0) {
       marktest();
       showresults();
-      $starttime = undef;
    }
 
    setControlState('normal');
