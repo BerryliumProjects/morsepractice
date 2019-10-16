@@ -581,13 +581,43 @@ sub marktest {
       push(@testwords, $testwordstats);
    }
 
-   # re-align words in case user missed a space - TO-DO
+   # re-align words in case user missed a space
+   my $iuw = 0;
+
+   for (my $itw = 0; $itw < scalar(@testwords); $itw++) {
+      my $extrauserword = splitword($userwords[$iuw], $testwords[$itw]);
+      $iuw++;
+
+      if (scalar($extrauserword)) {
+         # insert extra word after the current one. The original userword will have been shortened
+         splice(@userwords, $iuw, 0, $extrauserword);
+      }
+   }
 
    for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
       # re-align characters in words in case some missed
       alignchars($userwords[$iw], $testwords[$iw]);
       markword($userwords[$iw], $testwords[$iw]);
    }
+}
+
+sub splitword {
+   my $userinputref = shift;
+   my $teststatsref = shift;
+
+   my $userlen = scalar(@$userinputref);
+   my $testlen = scalar(@$teststatsref);
+   my @userinput2;
+
+   if ($userlen > $testlen + 1) {
+      @userinput2 = splice(@$userinputref, $testlen - 1); # split the word to match the length of the target excluding its final space
+      my $extrauserspacetime = $userinput2[0]->{t}; # the notional time at which the extra space is deemed to have been entered
+      push(@$userinputref, {ch=>' ', t=>$extrauserspacetime}); # re-terminate first word
+   }
+
+   if (@userinput2) {
+      return \@userinput2;
+   } # else implicitly return undef
 }
 
 sub playword {
