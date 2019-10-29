@@ -297,15 +297,17 @@ sub checkchar {
          }
       } else {
          if ($ch eq ' ') {
-            # ignore a double space if less than 500ms between them
+            if ($e->{maxwordlength} > 1) {
+               # ignore a double space if less than 500ms between them
 
-            if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
-               $ch = '';
-            } else {
-               push(@userwordinput, "$ch\t$thischtime\n");
+               if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
+                  $ch = '';
+               } else {
+                  push(@userwordinput, "$ch\t$thischtime\n");
+               }
+
+               $prevspacetime = $thischtime;
             }
-
-            $prevspacetime = $thischtime;
          } else {
             push(@userwordinput, "$ch\t$thischtime\n");
             $userword .= $ch;
@@ -316,7 +318,7 @@ sub checkchar {
          }
       }
 
-      if (($e->{maxwordlength} == 1) or $ch eq ' ') {
+      if (($e->{maxwordlength} == 1) xor $ch eq ' ') { # ignore spaces in one-char-at-a-time mode
          chomp(@userwordinput);
          push(@alluserinput, @userwordinput);
          @userwordinput = ();
