@@ -45,6 +45,7 @@ my $prevword = '';
 
 my $pulsetime;
 my $extracharpausetime;
+my $slowresponsethreshold = 1; # seconds
 
 my @alluserinput = ();
 my $userwordcnt;
@@ -492,6 +493,12 @@ sub markword {
          } else { 
             buildhistogram($successbypos, $i, 1); 
          }
+
+         if ($e->{measurecharreactions}) {
+            if ($reaction > $slowresponsethreshold) {
+               $autoextraweights .= $testchar;
+            }
+         }
       }
 
       # allow for missing tgttime
@@ -777,7 +784,6 @@ sub showresults {
 
       foreach my $ch (@worstchars) {
          $worstcharsreport .= sprintf ("\t%s\t%i ms\n", $ch, $avgreactionsbychar{$ch} * 1000 + 0.5);
-         $autoextraweights .= $ch; # practice slowest chars more in future 
          last if ($worstcount++ > 4);
       }
    }
