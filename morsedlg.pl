@@ -501,25 +501,20 @@ sub markword {
          }
       }
 
-      # allow for missing tgttime
-      if ($reaction >= -8) {
-         my $reactionms = int($reaction * 1000 + 0.5);
-         my $histcharindex = ($testchar eq ' ') ? '>' : $testchar; # for legibility
-         my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
-         my $testchardurationms = int($testcharduration * 1000 + 0.5);
-	 print "$testchar ($testchardurationms), $userchar, $reactionms, $typingtimems\n";
+      my $reactionms = int($reaction * 1000 + 0.5);
+      my $histcharindex = ($testchar eq ' ') ? '>' : $testchar; # for legibility
+      my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
+      my $testchardurationms = int($testcharduration * 1000 + 0.5);
+      print "$testchar ($testchardurationms), $userchar, $reactionms, $typingtimems\n";
 
-         if ($e->{measurecharreactions}) {
-            buildhistogram($reactionsbychar, $histcharindex, $reaction);
-         }
+      if ($e->{measurecharreactions}) {
+         buildhistogram($reactionsbychar, $histcharindex, $reaction);
+      }
 
-         # also record reaction/histogram by position in word (key:tab-n)
-         if ($e->{measurecharreactions} or $histposindex < 0) {
-            buildhistogram($reactionsbypos, $histposindex, $reaction);
-         }
-      } else {
-         print "$testchar, $userchar\n";
-      }         
+      # also record reaction/histogram by position in word (key:tab-n)
+      if ($e->{measurecharreactions} or $histposindex < 0) {
+         buildhistogram($reactionsbypos, $histposindex, $reaction);
+      }
    }
 
    # if in word recognition mode, note reaction time to start entering word
