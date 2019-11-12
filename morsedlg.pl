@@ -375,7 +375,7 @@ sub alignchars {
 
       # assume first mismatch is really a gap, and fill it
       for ($userlen .. $testlen - 1) {
-         splice @$userinputref, $difpos, 0, {ch => '_', t => 0}; # no time recorded
+         splice @$userinputref, $difpos, 0, {ch => '_', t => $userinputref->[$difpos]->{t}};
       }
    }
 }
