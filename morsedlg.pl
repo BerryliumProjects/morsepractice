@@ -284,6 +284,7 @@ sub checkchar {
    $starttime = time() unless defined $starttime; # count from first response
    $duration = time() - $starttime;
 
+   $ch = '' unless defined($ch);
    $ch = lc($ch);
    $ch =~ s/\r/ /; # newline should behave like space as word terminator
 
@@ -422,6 +423,19 @@ sub gethistogramaverages {
    return $averages;
 }
 
+sub getwordtext {
+   my $wordref = shift;
+
+   my $wordlen = scalar(@$wordref) - 1; # ignore trailing space
+   my $wordtext = '';
+
+   for (my $i = 0; $i < $wordlen; $i++) {
+      $wordtext .= $wordref->[$i]->{ch};
+   }
+
+   return $wordtext;
+}
+
 sub markword { 
    # find characters in error and mark reactions
    my $userinputref = shift;
@@ -451,6 +465,14 @@ sub markword {
 
       my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
+
+      if (not defined $usertime) {
+         # user input missing - possible at end of exercise after all other re-alignments attempted
+         # use reasonable dummy values
+         $usertime = $endchartime;
+         $userchar = '_';
+      }
+
       my $reaction = $usertime - $endchartime;
 
       my $typingtimems = '';
@@ -552,6 +574,7 @@ sub marktest {
    my @userwords = ();
    my @testwords = ();
 
+   # read test and user word structures from formatted records
    for (my $iw = 0; $iw < $testwordcnt; $iw++) {
       my $userwordinput = [];
       
@@ -585,7 +608,7 @@ sub marktest {
       push(@testwords, $testwordstats);
    }
 
-   # re-align words in case user missed a space
+   # re-align words in case user missed a space and combined two words
    my $iuw = 0;
 
    for (my $itw = 0; $itw < scalar(@testwords); $itw++) {
@@ -598,9 +621,33 @@ sub marktest {
       }
    }
 
+   # re-align words in case user missed a whole word but then successfully resynced
+   my $previoususerwordtext = '';
+
+   for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
+      # get text of words
+      my $userwordtext = getwordtext($userwords[$iw]);
+      my $testwordtext = getwordtext($testwords[$iw]);
+
+      if (($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
+         # insert notional empty user word with the same time as the start of the next user word
+
+         my $dummyspacetime = $userwords[$iw]->[0]->{t};
+         my $dummyspacerec = {ch => ' ', t => $dummyspacetime};
+         my $dummyword = [$dummyspacerec]; # reference to an array containing one element
+
+         splice(@userwords, $iw - 1, 0, $dummyword);
+         $userwordtext = $previoususerwordtext;
+      }
+
+      $previoususerwordtext = $userwordtext;
+   }
+
    for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
       # re-align characters in words in case some missed
       alignchars($userwords[$iw], $testwords[$iw]);
+
+      # analyse word characters
       markword($userwords[$iw], $testwords[$iw]);
    }
 }
