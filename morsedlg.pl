@@ -4,6 +4,7 @@ use warnings;
 
 use Tk;
 use Tk::ROText;
+use Tk::DialogBox;
 
 use Data::Dumper;
 use Tk::After;
@@ -140,12 +141,14 @@ sub populatemainwindow {
 
    $mwdf->addButtonField('Calibrate', 'calibrate',  'c', sub{calibrate()}, '');
    $mwdf->addButtonField('AutoWeight', 'autoweight',  'u', sub{autoweight()}, '');
-   $mwdf->addButtonField('Start', 'start',  's', sub{startAuto()}, '');
    $mwdf->addButtonField('Generate', 'generate',  'g', sub{validateSettings(); $d->Contents(generateText())}, '');
    $mwdf->addButtonField('Play', 'play',  'p', sub{playText($d->Contents)}, '');
-   $mwdf->addButtonField('Quit', 'quit',  'q', sub{if ($automode) {abortAuto()} else {$w->destroy}}, '');
+   $mwdf->addButtonField('Start', 'start',  's', sub{startAuto()}, '');
+   $mwdf->addButtonField('Finish', 'finish',  'f', sub{abortAuto()}, '');
+   $mwdf->addButtonField('Quit', 'quit',  'q', sub{$w->destroy}, '');
 
    setexweights();
+   setControlState('normal');
 }
 
 sub setexweights {
@@ -689,6 +692,11 @@ sub playword {
 sub playText {
    my $ptext = shift;
 
+   # sanitise formatting characters used when marking test
+   $ptext =~ s/[\[\]\#\_]//g;
+   # collapse whitespace sequences to a single space
+   $ptext =~ s/\s+/ /g;
+
    open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, '-t')) or die; 
    autoflush MP, 1;
 
@@ -777,6 +785,7 @@ sub stopAuto {
       showresults();
    }
 
+   $d->Contents('');
    setControlState('normal');
 
    if ($e->{dictsize} == 0) {
@@ -787,7 +796,7 @@ sub stopAuto {
 }
 
 sub showresults {
-   my $rw = $w->Toplevel(-title=>'Results'); # results window
+   my $rw = $w->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
    my $rwdf = DialogFields->init($rw);
    populateresultswindow($rwdf);
 
@@ -865,6 +874,7 @@ sub showresults {
    }
 
    $rwdf->{controls}->{positionsuccesses}->Contents($positionsuccessreport); 
+   $rw->Show;
 }
 
 sub autoweight {
@@ -883,7 +893,18 @@ sub setControlState {
       }
    }
 
+   $mwdf->{controls}->{calibrate}->configure(-state=>$state);
+   $mwdf->{controls}->{autoweight}->configure(-state=>$state);
+   $mwdf->{controls}->{generate}->configure(-state=>$state);
+   $mwdf->{controls}->{play}->configure(-state=>$state);
    $mwdf->{controls}->{start}->configure(-state=>$state);
+
+   # enable Finish button only during an exercise
+   if ($state eq 'disabled') {
+       $mwdf->{controls}->{finish}->configure(-state=>'normal');
+   } else {
+       $mwdf->{controls}->{finish}->configure(-state=>'disabled');
+   }
 }
 
 sub syncflush {
@@ -919,6 +940,6 @@ sub populateresultswindow {
    $rwdf->addWideTextField('Reactions by position:', 'worstcharpos', 10, 35, '', undef, undef, '');
    $rwdf->addWideTextField('Success rate by position:', 'positionsuccesses', 10, 35, '', undef, undef, '');
 
-   $rwdf->addButtonField('OK', 'ok',  undef, sub{$rwdf->{w}->destroy}, '');
+#    $rwdf->addButtonField('OK', 'ok',  undef, sub{$rwdf->{w}->destroy}, '');
 }
 
