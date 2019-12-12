@@ -450,7 +450,7 @@ sub markword {
    my $endtestwordtime = 0;
    my $markuserword = '';
    my $marktestword = '';
-   my $prevusertime; # initially undef
+   my $prevusertime = 0;
  
    for (my $i = 0; $i < $testlen; $i++) {
       my $userinput = $userinputref->[$i];
@@ -468,8 +468,13 @@ sub markword {
 
       my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
+      my $typingtimems = '';
 
-      if (not defined $usertime) {
+      if (defined $usertime) {
+         if ($prevusertime > 0) {
+            $typingtimems = int(($usertime - $prevusertime) * 1000);
+         }
+      } else {
          # user input missing - possible at end of exercise after all other re-alignments attempted
          # use reasonable dummy values
          $usertime = $endchartime;
@@ -477,13 +482,6 @@ sub markword {
       }
 
       my $reaction = $usertime - $endchartime;
-
-      my $typingtimems = '';
-
-      if (defined $prevusertime and $prevusertime > 0 and $usertime > 0) {
-         $typingtimems = int(($usertime - $prevusertime) * 1000);
-      }
-
       $prevusertime = $usertime;
 
       $pulsecount += $testpulsecnt; # for  whole session
