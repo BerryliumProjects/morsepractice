@@ -47,6 +47,8 @@ my $prevword = '';
 my $pulsetime;
 my $extracharpausetime;
 my $slowresponsethreshold = 1; # seconds
+my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
+my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
 
 my @alluserinput = ();
 my $userwordcnt;
@@ -450,7 +452,7 @@ sub markword {
    my $endtestwordtime = 0;
    my $markuserword = '';
    my $marktestword = '';
-   my $prevusertime = 0;
+   my $prevusertime; # initially undef
  
    for (my $i = 0; $i < $testlen; $i++) {
       my $userinput = $userinputref->[$i];
@@ -468,13 +470,8 @@ sub markword {
 
       my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
-      my $typingtimems = '';
 
-      if (defined $usertime) {
-         if ($prevusertime > 0) {
-            $typingtimems = int(($usertime - $prevusertime) * 1000);
-         }
-      } else {
+      if (not defined $usertime) {
          # user input missing - possible at end of exercise after all other re-alignments attempted
          # use reasonable dummy values
          $usertime = $endchartime;
@@ -482,7 +479,6 @@ sub markword {
       }
 
       my $reaction = $usertime - $endchartime;
-      $prevusertime = $usertime;
 
       $pulsecount += $testpulsecnt; # for  whole session
       $totalcharcount++; # count spaces as chars
@@ -524,11 +520,37 @@ sub markword {
          }
       }
 
-      my $reactionms = int($reaction * 1000 + 0.5);
+      my $typingtimems = '';
+      my $reactionms = '';
+
+      if ($userchar ne '_') {
+         $reactionms = int($reaction * 1000 + 0.5);
+
+         if ($reactionms <= 0) {
+            $reactionms = ''; # don't show misleading results
+         }
+
+         if (defined $prevusertime) {
+            $typingtimems = int(($usertime - $prevusertime) * 1000);
+
+            if ($typingtimems <= 0) {
+               $typingtimems = '' # don't show misleading values
+            }
+         }
+
+         $prevusertime = $usertime;
+      }
+
+      my $testchardurationms = int($testcharduration * 1000 + 0.5);
+      # treat reactionms and typingtimems as strings as could be blank if n/a
+      printf "%1s%5d%2s%5s%5s\n", $testchar, $testchardurationms, $userchar, $reactionms, $typingtimems;
+
+      if ($reaction < $minimumreaction and $userchar eq '_') {
+         $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
+      }
+
       my $histcharindex = ($testchar eq ' ') ? '>' : $testchar; # for legibility
       my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
-      my $testchardurationms = int($testcharduration * 1000 + 0.5);
-      print "$testchar ($testchardurationms), $userchar, $reactionms, $typingtimems\n";
 
       if ($e->{measurecharreactions}) {
          buildhistogram($reactionsbychar, $histcharindex, $reaction);
