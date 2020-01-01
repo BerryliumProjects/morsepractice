@@ -137,7 +137,7 @@ sub populatemainwindow {
    $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '', undef, sub{setdictsizes()}, '');
 
 
-   $d = $mwdf->addWideTextField(undef, 'exercisetext', 8, 50, '', undef, undef, '');
+   $d = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '', undef, undef, '');
    $d->focus;
    $d->bind('<KeyPress>', [\&checkchar, Ev('A')]); # automatically supplies a reference to $d as first argument
 
