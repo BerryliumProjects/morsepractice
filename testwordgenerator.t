@@ -15,7 +15,7 @@ $word = '';
 @words = ();
 
 for (1..3) {
-  $word = $w->chooseWord($w);
+  $word = $w->chooseWord($word);
   push @words, $word;
   print "Repeated word test: $word\n";
 }
@@ -23,10 +23,10 @@ for (1..3) {
 ok ($words[0] eq $words[1], 'Word repeated ok');
 ok ($words[1] ne $words[2], 'Word was not duplicated');
 
-$w->addDictionary('qsolist.txt',0,5);
+$w->addDictionary('qsowordlist.txt',0,5);
 
 print Dumper $w;
-ok ($w->{size} == 8, '5 added from qsolist');
+ok ($w->{size} == 8, '5 added from qsowordlist');
 
 $w = TestWordGenerator->new(4,8);
 $w->addPseudo (10000);

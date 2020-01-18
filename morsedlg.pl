@@ -127,8 +127,9 @@ sub populatemainwindow {
    $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0, undef, sub{setdictsizes()}, '');
+   $mwdf->addCheckbuttonField('Use QSO Phrases', 'useqphrases',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use International Callsigns', 'useicalls',  0, undef, sub{setdictsizes()}, '');
+   $mwdf->addCheckbuttonField('Use Complex Callsigns', 'useicalls',  0, undef, sub{setdictsizes()}, '');
    $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1, undef, undef, '');
 
    $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
@@ -185,7 +186,7 @@ sub validateSettings {
       $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
    }
 
-   unless ($e->{useqdict} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls}) {
+   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls}) {
       $e->{usepseudo} = 1; # ensure at least some words added
    }
 
@@ -198,7 +199,12 @@ sub validateSettings {
    }
 
    if ($e->{useqdict}) {
-      $twg->addDictionary('qsolist.txt', $e->{dictoffset}, $e->{dictsize});
+      $twg->addDictionary('qsowordlist.txt', $e->{dictoffset}, $e->{dictsize});
+      $e->{userelfreq} = 0; # incompatible with using dictionary
+   }
+
+   if ($e->{useqphrases}) {
+      $twg->addDictionary('qsophrases.txt', $e->{dictoffset}, $e->{dictsize});
       $e->{userelfreq} = 0; # incompatible with using dictionary
    }
 
@@ -256,7 +262,8 @@ sub startAuto {
    $starttime = undef;
  
    if ($e->{syncafterword}) {   
-      autogen();
+      $testword = generateWord();
+      playword($testword);
    } else {
       my $testtext = generateText();
       my @testtext = split(/ /, $testtext);     
@@ -268,11 +275,6 @@ sub startAuto {
 sub generateWord {
     $prevword = $twg->chooseWord($prevword);
     return $prevword;
-}
-
-sub autogen {
-   $testword = generateWord();
-   playword($testword);
 }
 
 sub abortAuto {
@@ -294,44 +296,44 @@ sub checkchar {
    $ch =~ s/\r/ /; # newline should behave like space as word terminator
 
    if ($ch ne '') { # ignore empty characters (e.g. pressing shift)
-      my $thischtime = time();
-
-      if ($ch eq "\b") {
-         if ($e->{allowbackspace} and $userword ne '') {
-            # discard final character and stats 
-            pop(@userwordinput);
-            $userword = substr($userword, 0, -1);
-         }
+      if ($e->{maxwordlength} > 1) {
+         checkwordchar($ch);
       } else {
-         if ($ch eq ' ') {
-            if ($e->{maxwordlength} > 1) {
-               # ignore a double space if less than 500ms between them
+         checksinglechar($ch);
+      }
+   }
 
-               if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
-                  $ch = '';
-               } else {
-                  push(@userwordinput, "$ch\t$thischtime\n");
-               }
+   if ($abortpendingtime) {
+      stopAuto();
+   }
+}
 
-               $prevspacetime = $thischtime;
-            }
+sub checkwordchar {
+   my $ch = shift;
+   my $thischtime = time();
+
+   if ($ch eq "\b") {
+      if ($e->{allowbackspace} and $userword ne '') {
+         # discard final character and stats 
+         pop(@userwordinput);
+         $userword = substr($userword, 0, -1);
+      }
+   } else {
+      if ($ch eq ' ') {
+         # ignore a double space if less than 500ms between them
+
+         if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
+            $ch = '';
          } else {
             push(@userwordinput, "$ch\t$thischtime\n");
-            $userword .= $ch;
-
-            if ($e->{maxwordlength} == 1) { # fill in the end of word blank
-               push(@userwordinput, " \t$thischtime\n");
-            }
          }
-      }
 
-      if (($e->{maxwordlength} == 1) xor $ch eq ' ') { # ignore spaces in one-char-at-a-time mode
+         $prevspacetime = $thischtime;
          chomp(@userwordinput);
          push(@alluserinput, @userwordinput);
          @userwordinput = ();
 
          if ($e->{syncafterword}) { 
-            # get word report from player
             syncflush();
 
             $testwordcnt++; # length of test is variable depending on progress in test duration
@@ -340,11 +342,12 @@ sub checkchar {
                $abortpendingtime = time(); 
             } else {
                if (($userword ne $testword) and $e->{retrymistakes}) {
-                  playword($testword); ## req extra trailing space?
                   $d->insert('end', '# ');
                } else {
-                  autogen();
+                  $testword = generateWord();
                }
+
+               playword($testword);
             }
          } else {
             $userwordcnt++;
@@ -355,11 +358,39 @@ sub checkchar {
          }
 
          $userword = '';
+      } else {
+         push(@userwordinput, "$ch\t$thischtime\n");
+         $userword .= $ch;
       }
    }
+}
 
-   if ($abortpendingtime) {
-      stopAuto();
+sub checksinglechar {
+   my $ch = shift;
+
+   my $thischtime = time();
+
+   if ($ch ne ' ' and $ch ne "\b") {
+      push(@userwordinput, "$ch\t$thischtime");
+      push(@userwordinput, " \t$thischtime");
+      push(@alluserinput, @userwordinput);
+      @userwordinput = ();
+
+      syncflush();
+
+      $testwordcnt++; # length of test is variable depending on progress in test duration
+
+      if ($e->{practicetime} > 0 and ($e->{practicetime} * 60) < $duration) {
+         $abortpendingtime = time(); 
+      } else {
+         if (("$ch " ne $testword) and $e->{retrymistakes}) {
+            $d->insert('end', '# '); # repeat previous word
+         } else {
+            $testword = generateWord();
+         }
+
+         playword($testword);
+      }
    }
 }
 

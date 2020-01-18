@@ -32,11 +32,9 @@ sub addDictionary {
          chomp $word;
          $word =~ s/^ +//;
          $word =~ s/ +$//;
-         my @firstword = $word =~ /(\S+)/; # list context needed
          
-# for phrases, apply the length constraints to the first word only
-         # the context will then prepare for any longer words later
-         if (length($firstword[0]) >= $self->{minlength} and length($firstword[0]) <= $self->{maxlength}) { 
+         # don't apply length constraints to phrases
+         if ($word =~ ' ' or (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength})) { 
             $c++;
             if ($c > $offset) {
                $self->addWord($word);
@@ -153,24 +151,26 @@ sub addCallsign {
          $word .= $alpha[int(rand(26))];
       }
 
-      my $suffixpc = rand(100);
+      if ($international) {
+         my $suffixpc = rand(100);
 
-      if ($suffixpc > 80) {
-         # portable
-         $word .= '/p'
-      } elsif ($suffixpc > 70) {
-         # mobile
-         $word .= '/m'
-      } elsif ($suffixpc > 65) {
-         # alternative qth
-         $word .= '/a'
-      } elsif ($suffixpc > 63) {
-         # maritime mobile
-         $word .= '/mm'
-      } elsif ($suffixpc > 60) {
-         # Jota
-         $word .= '/j'
-      } # otherwise no suffix
+         if ($suffixpc > 80) {
+            # portable
+            $word .= '/p'
+         } elsif ($suffixpc > 70) {
+            # mobile
+            $word .= '/m'
+         } elsif ($suffixpc > 65) {
+            # alternative qth
+            $word .= '/a'
+         } elsif ($suffixpc > 63) {
+            # maritime mobile
+            $word .= '/mm'
+         } elsif ($suffixpc > 60) {
+            # Jota
+            $word .= '/j'
+         } # otherwise no suffix
+      }
 
       $self->addWord($word);
    }
