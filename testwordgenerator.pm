@@ -126,9 +126,9 @@ sub addCallsign {
          if ($prefix =~ /\d/) {
             # prefixes starting with a digit must also include a letter
             $prefix .= $alpha[int(rand(26))];
-         } elsif (rand(100) > 80) {
+         } elsif (rand(100) > 30) {
             # prefixes starting with a letter may be length 1 or 2
-            $prefix .= $alphanum[int(rand(36))];
+            $prefix .= $alpha[int(rand(26))];
          }
  
          push @prefixes, $prefix;
