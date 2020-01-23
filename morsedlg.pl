@@ -16,6 +16,7 @@ our %charcodes;
 
 use dialogfields;
 use testwordgenerator;
+use histogram;
 
 my $twg; # instance of test word generator
 # /var/tmp is on a tmpfs; /tmp is not
@@ -58,12 +59,8 @@ my @testwordstats;
 
 my @subdictionary;
 
-# histograms
-my $reactionsbychar;
-my $reactionsbypos;
-my $missedchars;
-my $mistakenchars;
-my $successbypos;
+# container for histograms
+my $h = {};
 
 my $wpm = $ARGV[0];
 
@@ -248,11 +245,11 @@ sub startAuto {
    $testwordcnt = 0;
    $userword = '';
 
-   $reactionsbychar = {};
-   $reactionsbypos = {};
-   $missedchars = {};
-   $mistakenchars = {};
-   $successbypos = {};
+   $h->{reactionsbychar} = Histogram->new;
+   $h->{reactionsbypos} = Histogram->new;
+   $h->{missedchars} = Histogram->new;
+   $h->{mistakenchars} = Histogram->new;
+   $h->{successbypos} = Histogram->new;
  
    print MP "= \n";
    sleep 2;
@@ -417,48 +414,6 @@ sub alignchars {
    }
 }
 
-sub buildhistogram {
-   # add values to a histogram accumulator
-   my $histogram = shift;
-   my $key = shift;
-   my $value = shift;
-
-   if (exists $histogram->{count}->{$key}) {
-      $histogram->{count}->{$key}++;
-      $histogram->{total}->{$key} += $value;
-   } else {
-      $histogram->{count}->{$key} = 1;
-      $histogram->{total}->{$key} = $value;
-   }
-}
-
-sub counthistogram {
-   # get number of items added to histogram
-   my $histogram = shift;
-
-   my $count = 0;
-
-   foreach my $key (keys %{$histogram->{count}}) {
-      $count += $histogram->{count}->{$key};
-   }
-   
-   return $count;
-}
-
-sub gethistogramaverages {
-   # return a reference to a hash of average values (total/count)
-   my $histogram = shift;
-
-   my $averages = {};
-
-   foreach my $key (keys %{$histogram->{count}}) {
-      # count is always at least 1, or the key would not exist
-      $averages->{$key} = $histogram->{total}->{$key} / $histogram->{count}->{$key};
-   }
-
-   return $averages;
-}
-
 sub getwordtext {
    my $wordref = shift;
 
@@ -527,21 +482,21 @@ sub markword {
          $nonblankcharcount++;
  
          if ($userchar eq '_') { # missed char
-            buildhistogram($missedchars, $testchar, 1);
+            $h->{missedchars}->add($testchar, 1);
 
 	    # increase frequency of confused characters for later
             # any invalid characters will be played as = 
 	    $autoextraweights .= $testchar . $testchar;
-            buildhistogram($successbypos, $i, 0);
+            $h->{successbypos}->add($i, 0);
          } elsif ($userchar ne $testchar) {
-            buildhistogram($mistakenchars, $testchar, 1);	    
+            $h->{mistakenchars}->add($testchar, 1);	    
 
 	    # increase frequency of confused characters for later
             # any invalid characters will be played as = 
 	    $autoextraweights .= $userchar . $testchar . $testchar;
-            buildhistogram($successbypos, $i, 0);
+            $h->{successbypos}->add($i, 0);
          } else { 
-            buildhistogram($successbypos, $i, 1); 
+            $h->{successbypos}->add($i, 1); 
          }
 
          if ($e->{measurecharreactions}) {
@@ -584,12 +539,12 @@ sub markword {
       my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
 
       if ($e->{measurecharreactions}) {
-         buildhistogram($reactionsbychar, $histcharindex, $reaction);
+         $h->{reactionsbychar}->add($histcharindex, $reaction);
       }
 
       # also record reaction/histogram by position in word (key:tab-n)
       if ($e->{measurecharreactions} or $histposindex < 0) {
-         buildhistogram($reactionsbypos, $histposindex, $reaction);
+         $h->{reactionsbypos}->add($histposindex, $reaction);
       }
    }
 
@@ -599,7 +554,7 @@ sub markword {
       my $wordreaction = $startuserwordtime - $endtestwordtime;
 
       if ($wordreaction > -3 and $wordreaction < 3) { # ignore if either time is missing
-         buildhistogram($reactionsbypos, -2, $wordreaction);
+         $h->{reactionsbypos}->add(-2, $wordreaction);
 
          printf "Word:  %i\n",  $wordreaction * 1000 + 0.5;
       }
@@ -858,8 +813,8 @@ sub showresults {
    #   reactions: reactionsbychar, reactionsbypos - reactions recorded for bad chars but not missed chars
 
    my $successrate = ($testwordcnt ? $successes / $testwordcnt : 0);
-   my $missedcharcnt = counthistogram($missedchars);
-   my $mistakencharcnt = counthistogram($mistakenchars);
+   my $missedcharcnt = $h->{missedchars}->grandcount;
+   my $mistakencharcnt = $h->{mistakenchars}->grandcount;
    my $charsuccessrate = ($nonblankcharcount ? 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount : 0);
    my $avgpulsecnt = ($totalcharcount ? $pulsecount / $totalcharcount : 0);
 
@@ -867,8 +822,8 @@ sub showresults {
    $re->{duration} = sprintf('%i', $duration);
    $re->{wordreport} = sprintf('%i%% (%i / %i)', $successrate * 100, $successes, $testwordcnt);
    $re->{charreport} = sprintf('%i%% (%i missed, %i wrong / %i)', $charsuccessrate * 100, $missedcharcnt, $mistakencharcnt, $nonblankcharcount);
-   $re->{missedchars} = join('', sort(keys(%{$missedchars->{count}})));
-   $re->{mistakenchars} = join('', sort(keys(%{$mistakenchars->{count}})));
+   $re->{missedchars} = join('', @{$h->{missedchars}->keys});
+   $re->{mistakenchars} = join('', @{$h->{mistakenchars}->keys});
    $re->{pariswpm} = sprintf('%.1f', ($pulsecount / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
    $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
    $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
@@ -876,7 +831,7 @@ sub showresults {
  
  
    # Report slowest average reaction times by character
-   my %avgreactionsbychar = %{gethistogramaverages($reactionsbychar)};
+   my %avgreactionsbychar = %{$h->{reactionsbychar}->averages};
    my @worstchars = sort {$avgreactionsbychar{$b} <=> $avgreactionsbychar{$a}} (keys %avgreactionsbychar);
 
    my $worstcharsreport = '';
@@ -893,7 +848,7 @@ sub showresults {
    $rwdf->{controls}->{worstchars}->Contents($worstcharsreport);
 
    # Report average reaction times by position in word
-   my %avgreactionsbypos = %{gethistogramaverages($reactionsbypos)};
+   my %avgreactionsbypos = %{$h->{reactionsbypos}->averages};
    my @worstcharpos = sort keys %avgreactionsbypos;
 
    my $worstcharposreport = '';
@@ -915,13 +870,13 @@ sub showresults {
    $rwdf->{controls}->{worstcharpos}->Contents($worstcharposreport);
 
    # Report success rate by position in word
-   my %avgsuccessbypos = %{gethistogramaverages($successbypos)};
+   my %avgsuccessbypos = %{$h->{successbypos}->averages};
 
    my $positionsuccessreport = '';
 
    foreach my $pos (sort keys %avgsuccessbypos) {
       my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
-      $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $successbypos->{total}->{$pos}, $successbypos->{count}->{$pos});
+      $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $h->{successbypos}->keytotal($pos), $h->{successbypos}->keycount($pos));
    }
 
    $rwdf->{controls}->{positionsuccesses}->Contents($positionsuccessreport); 
