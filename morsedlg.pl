@@ -260,7 +260,7 @@ sub startAuto {
  
    if ($e->{syncafterword}) {   
       $testword = generateWord();
-      playword($testword);
+      print MP "$testword\n";
    } else {
       my $testtext = generateText();
       my @testtext = split(/ /, $testtext);     
@@ -344,7 +344,7 @@ sub checkwordchar {
                   $testword = generateWord();
                }
 
-               playword($testword);
+               print MP "$testword\n";
             }
          } else {
             $userwordcnt++;
@@ -386,7 +386,7 @@ sub checksinglechar {
             $testword = generateWord();
          }
 
-         playword($testword);
+         print MP "$testword\n";
       }
    }
 }
@@ -680,21 +680,6 @@ sub splitword {
    } # else implicitly return undef
 }
 
-sub playword {
-   my $word = shift;
-
-   if ($e->{maxwordlength} == 1) {
-      playchar($word);
-   } else {
-      # play all characters in word plus 2 spaces
-      foreach my $ch (split(//, $word)) {
-         playchar($ch);
-      }
-   }
-
-   print MP "\n";
-}
-
 sub playText {
    my $ptext = shift;
 
@@ -743,29 +728,6 @@ sub calibrate {
 
    print MP "paris paris\n#\n";
    close(MP);
-}
-
-sub playchar {
-   my $ch = shift;
-
-   if (defined($ch) and length($ch) == 1) {
-      print MP $ch;
-      my $chseq = $charcodes{lc($ch)};
-
-      if (defined $chseq) {
-         my @chseqelements = split('', $chseq);
-
-         my $pulses = 0; 
-
-         for (my $i = 0; $i < scalar(@chseqelements); $i++) {
-            if ($chseqelements[$i] eq '-') {
-               $pulses += ($e->{dashweight} + 1);
-            } else {
-               $pulses += 2;
-            }
-         }
-      }
-   }
 }
 
 sub stopAuto {
