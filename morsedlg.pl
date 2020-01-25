@@ -79,9 +79,6 @@ my $pitch = $ARGV[2];
 
 my $weightedkeylist; # can include repeats of common characters
 
-my $automode; # if set then each keypress is checked against the previously generated character.
-my $prevauto = ''; # If entered key matches this then another random character is generated, otherwise the last one is repeated
-
 my $w = MainWindow->new();
 
 my $font = $w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
@@ -90,11 +87,10 @@ my $font = $w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
 
 
 # share as global variables for general access
-my $mwdf = DialogFields->init($w);
+my $mwdf = DialogFields->init($w,\&mainwindowcallback);
 my $e = $mwdf->entries; # gridframe control values
 my $d; # exercisetext control ref, set by populatemainwindow
 populatemainwindow();
-setdictsizes(); # based on what dictionaries have been selected
 validateSettings();
 
 $w->MainLoop();
@@ -104,51 +100,88 @@ sub populatemainwindow {
    my $knownchars = join('', sort keys(%charcodes));
    $knownchars =~ s/ //; # remove blank as an option
 
-   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{setexweights()}, '');
-   $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2, undef, undef, '');
-   $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1, undef, sub{setdictsizes()}, '');
-   $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9, undef, sub{setdictsizes()}, '');
-   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0, undef, undef, '');
-   $mwdf->addEntryField('Character WPM', 'wpm', 40, $wpm, 'w', undef, '');
-   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, $effwpm, undef, undef, '');
-   $mwdf->addEntryField('Note Pitch', 'pitch', 40, $pitch, undef, undef, '');
-   $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00', undef, undef, '');
-   $mwdf->addEntryField('Dash Weight', 'dashweight', 40, 3, undef, undef, '');
-   $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0, undef, undef, '');
+   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{setexweights()});
+   $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
+   $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1);
+   $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9);
+   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
+   $mwdf->addEntryField('Character WPM', 'wpm', 40, $wpm, 'w');
+   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, $effwpm);
+   $mwdf->addEntryField('Note Pitch', 'pitch', 40, $pitch);
+   $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
+   $mwdf->addEntryField('Dash Weight', 'dashweight', 40, 3);
+   $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
 
-   $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1, undef, undef, '');
-   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{setexweights()}, '');
-   $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1, undef, undef, '');
-   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0, undef, undef, '');
-   $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use QSO Phrases', 'useqphrases',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Use Complex Callsigns', 'useicalls',  0, undef, sub{setdictsizes()}, '');
-   $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1, undef, undef, '');
+   $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
+   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{setexweights()});
+   $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
+   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
+   $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1);
+   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0);
+   $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0);
+   $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0);
+   $mwdf->addCheckbuttonField('Use QSO Phrases', 'useqphrases',  0);
+   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0);
+   $mwdf->addCheckbuttonField('Use Complex Callsigns', 'useicalls',  0);
+   $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1);
 
    $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
-   $mwdf->addEntryField('Dictionary Sample Size', 'dictsize', 40, 9999, undef, undef, '');
-   $mwdf->addEntryField('Dictionary Sample Offset', 'dictoffset', 40, 0, undef, undef, '');
-   $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '', undef, sub{setdictsizes()}, '');
+   $mwdf->addEntryField('Dictionary Sample Size', 'dictsize', 40, 9999);
+   $mwdf->addEntryField('Dictionary Sample Offset', 'dictoffset', 40, 0);
+   $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '');
 
 
-   $d = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '', undef, undef, '');
+   $d = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '');
    $d->focus;
-   $d->bind('<KeyPress>', [\&checkchar, Ev('A')]); # automatically supplies a reference to $d as first argument
 
-   $mwdf->addButtonField('Calibrate', 'calibrate',  'c', sub{calibrate()}, '');
-   $mwdf->addButtonField('AutoWeight', 'autoweight',  'u', sub{autoweight()}, '');
-   $mwdf->addButtonField('Generate', 'generate',  'g', sub{validateSettings(); $d->Contents(generateText())}, '');
-   $mwdf->addButtonField('Play', 'play',  'p', sub{playText($d->Contents)}, '');
-   $mwdf->addButtonField('Start', 'start',  's', sub{startAuto()}, '');
-   $mwdf->addButtonField('Finish', 'finish',  'f', sub{abortAuto()}, '');
-   $mwdf->addButtonField('Quit', 'quit',  'q', sub{$w->destroy}, '');
+   # buttons use callback by default
+   $mwdf->addButtonField('Calibrate', 'calibrate',  'c');
+   $mwdf->addButtonField('AutoWeight', 'autoweight',  'u');
+   $mwdf->addButtonField('Generate', 'generate',  'g');
+   $mwdf->addButtonField('Play', 'play',  'p');
+   $mwdf->addButtonField('Start', 'start',  's');
+   $mwdf->addButtonField('Finish', 'finish',  'f');
+   $mwdf->addButtonField('Quit', 'quit',  'q', sub{$w->destroy});
 
    setexweights();
    setControlState('normal');
+}
+
+sub startusertextinput {
+   $d->bind('<KeyPress>', [\&exercisekeyentered, Ev('A')]); # automatically supplies a reference to $d as first argument
+}
+
+sub stopusertextinput {
+   $d->bind('<KeyPress>', undef);
+}
+
+sub exercisekeyentered {
+   my $obj = shift; # automatically supplied reference to callback sender
+   my $ch = shift;
+   my $callback = $mwdf->{callback};
+   &$callback('exercisekey', $ch);
+}
+
+sub mainwindowcallback {
+   my $id = shift; # name of control firing event
+
+   if ($id eq 'exercisekey') {
+      my $ch = shift;
+      checkchar($ch);
+   } elsif ($id eq 'calibrate') {
+      calibrate();
+   } elsif ($id eq 'autoweight') {
+      autoweight();
+   } elsif ($id eq 'generate') {
+      validateSettings();
+      $d->Contents(generateText());
+   } elsif ($id eq 'play') {
+      playText($d->Contents);
+   } elsif ($id eq 'start') {
+      startAuto();
+   } elsif ($id eq 'finish') {
+      abortAuto();
+   }
 }
 
 sub setexweights {
@@ -236,7 +269,6 @@ sub startAuto {
    $pulsecount = 0;
    $totalcharcount = 0;
    $nonblankcharcount = 0;
-   $automode = 1;
    $abortpendingtime = 0;
    $prevspacetime = 0;
    @alluserinput = ();
@@ -258,6 +290,8 @@ sub startAuto {
 
    $starttime = undef;
  
+   startusertextinput();
+
    if ($e->{syncafterword}) {   
       $testword = generateWord();
       print MP "$testword\n";
@@ -277,14 +311,14 @@ sub generateWord {
 sub abortAuto {
    $abortpendingtime = time();
    $userabort = 1;
-   checkchar(' ');
+   $starttime = time() unless defined $starttime; # ensure defined
+   $duration = time() - $starttime;
+   stopAuto(); 
 }
 
 sub checkchar {
-   my $obj = shift; # automatically supplied reference to callback sender
    my $ch = shift;
 
-   return unless ($automode);
    $starttime = time() unless defined $starttime; # count from first response
    $duration = time() - $starttime;
 
@@ -731,7 +765,7 @@ sub calibrate {
 }
 
 sub stopAuto {
-   $automode = 0;
+   stopusertextinput();
 
    if (not $userabort) {
       print MP "#\n";
@@ -849,7 +883,6 @@ sub autoweight {
    my $xweights = $autoextraweights; 
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
    $e->{xweights} = $xweights;
-   setdictsizes();
 }
 
 sub setControlState {
@@ -885,10 +918,6 @@ sub syncflush {
    }
 
    unlink($mp2readyfile) if -f $mp2readyfile;
-}
-
-sub setdictsizes {
-   return; ## now done by TestWordGenerator module
 }
 
 sub populateresultswindow {

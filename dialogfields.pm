@@ -4,7 +4,7 @@ use strict;
 package DialogFields;
 
 sub init {
-   my ($class, $w) = @_;
+   my ($class, $w, $callback) = @_;
    
    my $dfref = {};
    bless $dfref, $class;
@@ -16,8 +16,8 @@ sub init {
    $dfref->{row} = 0; # row counter for g
    $dfref->{b} = undef; # frame for grid containing buttons - define later
    $dfref->{col} = 0; # column counter for b
-
    $dfref->{w} = $w;
+   $dfref->{callback} = $callback;
 
    return $dfref;
 
@@ -178,7 +178,7 @@ sub addButtonField {
    my $ctllabel = shift;
    my $ctlvar = shift;
    my $shortcutaltkey = shift;
-   my $command = shift;
+   my $command = shift; # overrides callback
    my $attributes = shift;
 
    (defined $attributes) or ($attributes = '');
@@ -192,6 +192,13 @@ sub addButtonField {
       $self->{b} = $self->{w}->Frame->pack; # frame for grid containing buttons
    }
 
+   if (not defined $command) {
+      my $callback = $self->{callback};
+      if (defined $callback) {
+         $command = sub{&$callback($ctlvar)};
+      }
+   }
+
    my $button = $self->{b}->Button(-text=>$ctllabel, -font=>'msgbox', -command=>$command);
    $button->grid(-row=>1, -column=>$col);
    $self->{controls}->{$ctlvar} = $button;
@@ -203,10 +210,6 @@ sub addButtonField {
       if ($underlinepos >= 0) {
          $button->configure(-underline=>$underlinepos);
       }
-   }
-
-   if (defined $command) {
-      $button->configure(-command=>$command);
    }
 
    $self->{attr}->{$ctlvar} = "button $attributes ";
