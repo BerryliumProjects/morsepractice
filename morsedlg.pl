@@ -717,11 +717,6 @@ sub splitword {
 sub playText {
    my $ptext = shift;
 
-   # sanitise formatting characters used when marking test
-   $ptext =~ s/[\[\]\#\_]//g;
-   # collapse whitespace sequences to a single space
-   $ptext =~ s/\s+/ /g;
-
    open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, '-t')) or die; 
    autoflush MP, 1;
 
@@ -787,7 +782,18 @@ sub stopAuto {
       showresults();
    }
 
-   $d->Contents('');
+   my $text = $d->Contents;
+
+   # remove incorrect attempts after marking text
+   $text =~ s/[^\[\]\#\s]+ \# //g;
+
+   # sanitise remaining formatting characters used when marking test
+   $text =~ s/[\[\]\#\_]//g;
+   # collapse whitespace sequences to a single space
+   $text =~ s/\s+/ /g;
+
+   # enable test to be played
+   $d->Contents($text);
    setControlState('normal');
 
    if ($e->{dictsize} == 0) {
