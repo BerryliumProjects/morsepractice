@@ -12,7 +12,7 @@ sub new {
 
    $repeats = 0 unless defined($repeats);
 
-   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, repeats => $repeats, size => 0, queue => [] };
+   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, repeats => $repeats, size => 0, queue => [], prevword => ''};
    bless($self, $class);
    return $self;
 }
@@ -240,8 +240,8 @@ sub readElements {
 
 sub chooseWord {
    my $self = shift;
-   my $prevword = shift;
 
+   my $prevword = $self->{prevword};
    my $word;
    my $maxtries = 5;
 
@@ -267,7 +267,7 @@ sub chooseWord {
       }
    }
 
-   return shift @{$self->{queue}};
+   return $self->{prevword} = shift @{$self->{queue}};
 }
 
 

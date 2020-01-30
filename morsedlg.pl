@@ -42,8 +42,6 @@ my $pulsecount = 0;
 my $totalcharcount = 0; # includes spaces
 my $nonblankcharcount = 0;
 my $userword = '';
-my $testword = '';
-my $prevword = '';
 
 my $pulsetime;
 my $extracharpausetime;
@@ -274,19 +272,13 @@ sub startAuto {
    startusertextinput();
 
    if ($e->{syncafterword}) {   
-      $testword = generateWord();
-      print MP "$testword\n";
+      print MP $twg->chooseWord . "\n";
    } else {
       my $testtext = generateText();
       my @testtext = split(/ /, $testtext);     
       $testwordcnt = scalar(@testtext); # target word count
       print MP "$testtext\n";
    }
-}
-
-sub generateWord {
-    $prevword = $twg->chooseWord($prevword);
-    return $prevword;
 }
 
 sub abortAuto {
@@ -353,10 +345,11 @@ sub checkwordchar {
             if ($e->{practicetime} > 0 and ($e->{practicetime} * 60) < $duration) {
                $abortpendingtime = time(); 
             } else {
+               my $testword = $twg->{prevword};
                if (($userword ne $testword) and $e->{retrymistakes}) {
                   $d->insert('end', '# ');
                } else {
-                  $testword = generateWord();
+                  $testword = $twg->chooseWord;
                }
 
                print MP "$testword\n";
@@ -395,10 +388,12 @@ sub checksinglechar {
       if ($e->{practicetime} > 0 and ($e->{practicetime} * 60) < $duration) {
          $abortpendingtime = time(); 
       } else {
-         if (("$ch " ne $testword) and $e->{retrymistakes}) {
+         my $testword = $twg->{prevword};
+
+         if (("$ch" ne $testword) and $e->{retrymistakes}) {
             $d->insert('end', '# '); # repeat previous word
          } else {
-            $testword = generateWord();
+            $testword = $twg->chooseWord;
          }
 
          print MP "$testword\n";
@@ -715,7 +710,7 @@ sub generateText {
    my $text = '';
 
    for (my $i = 0; $i < $genwords; $i++) {
-      $text .= generateWord() . ' ';
+      $text .= $twg->chooseWord . ' ';
    }
 
 #  chop($text); # remove final blank 

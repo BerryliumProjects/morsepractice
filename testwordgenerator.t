@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>9;
+use Test::Simple tests=>11;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -55,6 +55,9 @@ ok ($w->{size} == 3, '3 standard callsigns added');
 
 $w->addCallsign(1, 3);
 ok ($w->{size} == 6, '3 international callsigns added');
+
+ok ($w->chooseWord ne '', 'first word chosen');
+ok ($w->chooseWord ne '', 'second word chosen');
 
 print Dumper $w;
 
