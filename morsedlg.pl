@@ -62,29 +62,11 @@ my @subdictionary;
 # container for histograms
 my $h = {};
 
-my $wpm = $ARGV[0];
-
-(defined $wpm and $wpm > 0 ) or
-   $wpm = 20;
-
-my $effwpm = $ARGV[1];
-
-(defined $effwpm and $effwpm > 0) or
-   $effwpm = $wpm;
-
-my $pitch = $ARGV[2];
-
-(defined $pitch and $pitch > 0) or
-   $pitch = 600;
-
 my $weightedkeylist; # can include repeats of common characters
 
 my $w = MainWindow->new();
 
-my $font = $w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
-#print "Actual font:" .  Dumper($w->fontActual('msgbox')) . "\n";
-#printf "Descent/Linespace: %i %i\n", $w->fontMetrics('msgbox', -descent), $w->fontMetrics('msgbox', -linespace); 
-
+$w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
 
 # share as global variables for general access
 my $mwdf = DialogFields->init($w,\&mainwindowcallback);
@@ -92,28 +74,28 @@ my $e = $mwdf->entries; # gridframe control values
 my $d; # exercisetext control ref, set by populatemainwindow
 populatemainwindow();
 validateSettings();
-
+setexweights();
+setControlState('normal');
 $w->MainLoop();
 
 ### print "\n";
 sub populatemainwindow {
    my $knownchars = join('', sort keys(%charcodes));
    $knownchars =~ s/ //; # remove blank as an option
-
-   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{setexweights()});
+   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
    $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1);
    $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9);
    $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
-   $mwdf->addEntryField('Character WPM', 'wpm', 40, $wpm, 'w');
-   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, $effwpm);
-   $mwdf->addEntryField('Note Pitch', 'pitch', 40, $pitch);
+   $mwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
+   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, 20);
+   $mwdf->addEntryField('Note Pitch', 'pitch', 40, 600);
    $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
    $mwdf->addEntryField('Dash Weight', 'dashweight', 40, 3);
    $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
 
    $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{setexweights()});
+   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
    $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
    $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1);
@@ -142,9 +124,6 @@ sub populatemainwindow {
    $mwdf->addButtonField('Start', 'start',  's');
    $mwdf->addButtonField('Finish', 'finish',  'f');
    $mwdf->addButtonField('Quit', 'quit',  'q', sub{$w->destroy});
-
-   setexweights();
-   setControlState('normal');
 }
 
 sub startusertextinput {
@@ -168,6 +147,8 @@ sub mainwindowcallback {
    if ($id eq 'exercisekey') {
       my $ch = shift;
       checkchar($ch);
+   } elsif ($id eq 'setexweights') {
+      setexweights();
    } elsif ($id eq 'calibrate') {
       calibrate();
    } elsif ($id eq 'autoweight') {
