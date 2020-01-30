@@ -17,6 +17,7 @@ our %charcodes;
 use dialogfields;
 use testwordgenerator;
 use histogram;
+use maindialog;
 
 my $twg; # instance of test word generator
 # /var/tmp is on a tmpfs; /tmp is not
@@ -62,82 +63,18 @@ my $h = {};
 
 my $weightedkeylist; # can include repeats of common characters
 
-my $w = MainWindow->new();
+my $knownchars = join('', sort keys(%charcodes));
+$knownchars =~ s/ //; # remove blank as an option
 
-$w->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
+my $mdlg = MainDialog->init(\&mainwindowcallback, $knownchars);
+my $e = $mdlg->{e};
+my $d = $mdlg->{d};
 
-# share as global variables for general access
-my $mwdf = DialogFields->init($w,\&mainwindowcallback);
-my $e = $mwdf->entries; # gridframe control values
-my $d; # exercisetext control ref, set by populatemainwindow
-populatemainwindow();
 validateSettings();
 setexweights();
-setControlState('normal');
-$w->MainLoop();
-
-### print "\n";
-sub populatemainwindow {
-   my $knownchars = join('', sort keys(%charcodes));
-   $knownchars =~ s/ //; # remove blank as an option
-   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{&{$mwdf->{callback}}('setexweights')});
-   $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
-   $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1);
-   $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9);
-   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
-   $mwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
-   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, 20);
-   $mwdf->addEntryField('Note Pitch', 'pitch', 40, 600);
-   $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
-   $mwdf->addEntryField('Dash Weight', 'dashweight', 40, 3);
-   $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
-
-   $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
-   $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
-   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
-   $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1);
-   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0);
-   $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0);
-   $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0);
-   $mwdf->addCheckbuttonField('Use QSO Phrases', 'useqphrases',  0);
-   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0);
-   $mwdf->addCheckbuttonField('Use Complex Callsigns', 'useicalls',  0);
-   $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1);
-
-   $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
-   $mwdf->addEntryField('Dictionary Sample Size', 'dictsize', 40, 9999);
-   $mwdf->addEntryField('Dictionary Sample Offset', 'dictoffset', 40, 0);
-   $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '');
-
-
-   $d = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '');
-   $d->focus;
-
-   # buttons use callback by default
-   $mwdf->addButtonField('Calibrate', 'calibrate',  'c');
-   $mwdf->addButtonField('AutoWeight', 'autoweight',  'u');
-   $mwdf->addButtonField('Generate', 'generate',  'g');
-   $mwdf->addButtonField('Play', 'play',  'p');
-   $mwdf->addButtonField('Start', 'start',  's');
-   $mwdf->addButtonField('Finish', 'finish',  'f');
-   $mwdf->addButtonField('Quit', 'quit',  'q', sub{$w->destroy});
-}
-
-sub startusertextinput {
-   $d->bind('<KeyPress>', [\&exercisekeyentered, Ev('A')]); # automatically supplies a reference to $d as first argument
-}
-
-sub stopusertextinput {
-   $d->bind('<KeyPress>', undef);
-}
-
-sub exercisekeyentered {
-   my $obj = shift; # automatically supplied reference to callback sender
-   my $ch = shift;
-   my $callback = $mwdf->{callback};
-   &$callback('exercisekey', $ch);
-}
+$mdlg->setControlState('normal');
+$mdlg->show;
+exit 0;
 
 sub mainwindowcallback {
    my $id = shift; # name of control firing event
@@ -243,7 +180,7 @@ sub startAuto {
 
    $d->Contents('');
    $d->focus;
-   setControlState('disabled');
+   $mdlg->setControlState('disabled');
    $successes = 0;
    $pulsecount = 0;
    $totalcharcount = 0;
@@ -269,7 +206,7 @@ sub startAuto {
 
    $starttime = undef;
  
-   startusertextinput();
+   $mdlg->startusertextinput;
 
    if ($e->{syncafterword}) {   
       print MP $twg->chooseWord . "\n";
@@ -736,7 +673,7 @@ sub calibrate {
 }
 
 sub stopAuto {
-   stopusertextinput();
+   $mdlg->stopusertextinput;
 
    if (not $userabort) {
       print MP "#\n";
@@ -770,7 +707,7 @@ sub stopAuto {
 
    # enable test to be played
    $d->Contents($text);
-   setControlState('normal');
+   $mdlg->setControlState('normal');
 
    if ($e->{dictsize} == 0) {
       $e->{dictsize} = 9999; # avoid lock ups 
@@ -780,7 +717,7 @@ sub stopAuto {
 }
 
 sub showresults {
-   my $rw = $w->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
+   my $rw = $mdlg->{w}->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
    my $rwdf = DialogFields->init($rw);
    populateresultswindow($rwdf);
 
@@ -865,29 +802,6 @@ sub autoweight {
    my $xweights = $autoextraweights; 
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
    $e->{xweights} = $xweights;
-}
-
-sub setControlState {
-   my $state = shift;
-
-   foreach my $k (keys(%{$e})) {
-      if (($mwdf->{attr}->{$k} =~ /entry|checkbutton/) and not($mwdf->{attr}->{$k} =~ /locked/)) {
-         $mwdf->{controls}->{$k}->configure(-state=>$state);
-      }
-   }
-
-   $mwdf->{controls}->{calibrate}->configure(-state=>$state);
-   $mwdf->{controls}->{autoweight}->configure(-state=>$state);
-   $mwdf->{controls}->{generate}->configure(-state=>$state);
-   $mwdf->{controls}->{play}->configure(-state=>$state);
-   $mwdf->{controls}->{start}->configure(-state=>$state);
-
-   # enable Finish button only during an exercise
-   if ($state eq 'disabled') {
-       $mwdf->{controls}->{finish}->configure(-state=>'normal');
-   } else {
-       $mwdf->{controls}->{finish}->configure(-state=>'disabled');
-   }
 }
 
 sub syncflush {
