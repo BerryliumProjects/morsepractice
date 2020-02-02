@@ -66,6 +66,7 @@ sub init {
    $mwdf->addButtonField('AutoWeight', 'autoweight',  'u');
    $mwdf->addButtonField('Generate', 'generate',  'g');
    $mwdf->addButtonField('Play', 'play',  'p');
+   $mwdf->addButtonField('Flash', 'flash',  'h');
    $mwdf->addButtonField('Start', 'start',  's');
    $mwdf->addButtonField('Finish', 'finish',  'f');
    $mwdf->addButtonField('Quit', 'quit',  'q', sub{$self->{w}->destroy});

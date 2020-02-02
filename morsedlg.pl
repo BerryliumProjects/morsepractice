@@ -89,6 +89,8 @@ sub mainwindowcallback {
       $d->Contents(generateText());
    } elsif ($id eq 'play') {
       playText($d->Contents);
+   } elsif ($id eq 'flash') {
+      flashText($d->Contents);
    } elsif ($id eq 'start') {
       startAuto();
    } elsif ($id eq 'finish') {
@@ -627,6 +629,28 @@ sub playText {
 
    print MP "=   $ptext\n#\n";
    close(MP);
+}
+
+sub flashText {
+   my $ftext = shift;
+   my $semichartime = 60.0 / 6 / 2 / $e->{effwpm};
+
+   # temporarily remove line buffering from console, otherwise nothing is seen
+   select STDOUT;
+   local $| = 1;
+
+   print "Text flashing one visible character at a time:\n";
+   sleep 2;
+
+   foreach (split(//, $ftext)) {
+      # show character for half time, then blank for half
+      print "\r$_\t";
+      usleep($semichartime * 1000000); # microseconds
+      print "\r \t";
+      usleep($semichartime * 1000000); # microseconds
+   }
+
+   print "\nEnd of text flashing exercise\n\n";
 }
 
 sub generateText {
