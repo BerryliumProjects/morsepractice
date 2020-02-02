@@ -42,10 +42,7 @@ my $prevspacetime = 0;
 my $pulsecount = 0;
 my $totalcharcount = 0; # includes spaces
 my $nonblankcharcount = 0;
-my $userword = '';
 
-my $pulsetime;
-my $extracharpausetime;
 my $slowresponsethreshold = 1; # seconds
 my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
 my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
@@ -54,24 +51,22 @@ my @alluserinput = ();
 my $userwordcnt;
 my $testwordcnt;
 my @userwordinput;
+my $userword;
 my @testwordstats;
-
-my @subdictionary;
 
 # container for histograms
 my $h = {};
 
-my $weightedkeylist; # can include repeats of common characters
-
-my $knownchars = join('', sort keys(%charcodes));
-$knownchars =~ s/ //; # remove blank as an option
-
-my $mdlg = MainDialog->init(\&mainwindowcallback, $knownchars);
+my $mdlg = MainDialog->init(\&mainwindowcallback);
 my $e = $mdlg->{e};
 my $d = $mdlg->{d};
 
 validateSettings();
 setexweights();
+
+$e->{keylist} = join('', sort keys(%charcodes));
+$e->{keylist} =~ s/ //; # remove blank as an option
+
 $mdlg->setControlState('normal');
 $mdlg->show;
 exit 0;
@@ -90,6 +85,7 @@ sub mainwindowcallback {
       autoweight();
    } elsif ($id eq 'generate') {
       validateSettings();
+      prepareTest();
       $d->Contents(generateText());
    } elsif ($id eq 'play') {
       playText($d->Contents);
@@ -108,36 +104,15 @@ sub setexweights {
    }
 }
 
-sub validateSettings {
-   $pulsetime = 1.2 / $e->{wpm}; # a dit-mark or gap
-   # using standard average word length 5, 6 extra pauses per (word + space)
-   $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
-   $weightedkeylist = $e->{keylist} . $e->{xweights};
+sub prepareTest {
    $autoextraweights = ''; 
-
-   if (not $e->{minwordlength}) { # check if numeric and > 0
-      $e->{minwordlength} = 1;
-   }
-
-   if ((not $e->{maxwordlength}) or ($e->{maxwordlength} < $e->{minwordlength})) {
-      $e->{maxwordlength} = $e->{minwordlength};
-   }
 
    $twg = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
 
    # build selected word list considering complexity and min/max word length
-   @subdictionary = ();
-
-   if ($e->{retrymistakes}) {
-      $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
-   }
-
-   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls}) {
-      $e->{usepseudo} = 1; # ensure at least some words added
-   }
 
    if ($e->{userandom}) {
-      $twg->addRandom($weightedkeylist, 200);
+      $twg->addRandom($e->{keylist} . $e->{xweights}, 200);
    }
 
    if ($e->{usepseudo}) {
@@ -146,17 +121,14 @@ sub validateSettings {
 
    if ($e->{useqdict}) {
       $twg->addDictionary('qsowordlist.txt', $e->{dictoffset}, $e->{dictsize});
-      $e->{userelfreq} = 0; # incompatible with using dictionary
    }
 
    if ($e->{useqphrases}) {
       $twg->addDictionary('qsophrases.txt', $e->{dictoffset}, $e->{dictsize});
-      $e->{userelfreq} = 0; # incompatible with using dictionary
    }
 
    if ($e->{useedict}) {
       $twg->addDictionary('wordlist.txt', $e->{dictoffset}, $e->{dictsize});
-      $e->{userelfreq} = 0; # incompatible with using dictionary
    }
 
    if ($e->{usescalls}) {
@@ -171,9 +143,30 @@ sub validateSettings {
 }
 
 
+
+sub validateSettings {
+   if (not $e->{minwordlength}) { # check if numeric and > 0
+      $e->{minwordlength} = 1;
+   }
+
+   if ((not $e->{maxwordlength}) or ($e->{maxwordlength} < $e->{minwordlength})) {
+      $e->{maxwordlength} = $e->{minwordlength};
+   }
+
+   if ($e->{retrymistakes}) {
+      $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
+   }
+
+   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls}) {
+      $e->{usepseudo} = 1; # ensure at least some words added
+   }
+}
+
+
    
 sub startAuto {
    validateSettings();
+   prepareTest();
 
    open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces})) or die; 
    autoflush MP, 1;
@@ -254,7 +247,7 @@ sub checkwordchar {
    my $thischtime = time();
 
    if ($ch eq "\b") {
-      if ($e->{allowbackspace} and $userword ne '') {
+      if ($e->{allowbackspace}) {
          # discard final character and stats 
          pop(@userwordinput);
          $userword = substr($userword, 0, -1);
@@ -270,9 +263,6 @@ sub checkwordchar {
          }
 
          $prevspacetime = $thischtime;
-         chomp(@userwordinput);
-         push(@alluserinput, @userwordinput);
-         @userwordinput = ();
 
          if ($e->{syncafterword}) { 
             syncflush();
@@ -299,6 +289,9 @@ sub checkwordchar {
             } 
          }
 
+         chomp(@userwordinput);
+         push(@alluserinput, @userwordinput);
+         @userwordinput = ();
          $userword = '';
       } else {
          push(@userwordinput, "$ch\t$thischtime\n");
@@ -401,7 +394,6 @@ sub markword {
          $endchartime = $teststatsref->[$i-1]->{t};
       }
 
-      my $testcharduration = $testpulsecnt * $pulsetime;
       my $usertime = $userinput->{t};
 
       if (not defined $usertime) {
@@ -474,7 +466,7 @@ sub markword {
          $prevusertime = $usertime;
       }
 
-      my $testchardurationms = int($testcharduration * 1000 + 0.5);
+      my $testchardurationms = int($testpulsecnt * 1.2 / $e->{wpm} * 1000 + 0.5);
       # treat reactionms and typingtimems as strings as could be blank if n/a
       printf "%1s%5d%2s%5s%5s\n", $testchar, $testchardurationms, $userchar, $reactionms, $typingtimems;
 
@@ -742,8 +734,11 @@ sub showresults {
    $re->{pariswpm} = sprintf('%.1f', ($pulsecount / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
    $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
    $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
-   $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $pulsetime / 2 * 100); # as percentage
- 
+
+   my $stdcharpausetime = 2 * 1.2 / $e->{wpm}; # 2 pulses
+   # using standard average word length 5, 6 extra pauses per (word + space)
+   my $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
+   $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $stdcharpausetime * 100); # as percentage
  
    # Report slowest average reaction times by character
    my %avgreactionsbychar = %{$h->{reactionsbychar}->averages};
@@ -775,7 +770,7 @@ sub showresults {
          }
       }
    } else {
-      my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * $pulsetime;
+      my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * 1.2 / $e->{wpm};
       # reactions are from earliest opportunity to detect end of word, not from end of gap if extra spaces have been inserted
       $worstcharposreport .= sprintf("Word start\t%i ms\n", $avgreactionsbypos{-2} * 1000 + 0.5);
       $worstcharposreport .= sprintf("Word end  \t%i ms\n", $avgreactionsbypos{-1} * 1000 + 0.5);

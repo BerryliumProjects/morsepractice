@@ -16,7 +16,6 @@ use dialogfields;
 sub init {
    my $class = shift;
    my $callback = shift;
-   my $knownchars = shift;
 
    my $self = {};
    bless($self, $class);
@@ -28,9 +27,7 @@ sub init {
    my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback);
    $self->{e} = $mwdf->entries; # gridframe control values
 
-   $knownchars =~ s/ //; # remove blank as an option
-
-   $mwdf->addEntryField('Characters to practice', 'keylist', 40, $knownchars, undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addEntryField('Characters to practice', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
    $mwdf->addEntryField('Min Word Length', 'minwordlength', 40, 1);
    $mwdf->addEntryField('Max Word Length', 'maxwordlength', 40, 9);
