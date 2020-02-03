@@ -19,28 +19,40 @@ use testwordgenerator;
 use histogram;
 use maindialog;
 
-# constants
-my $slowresponsethreshold = 1; # seconds
-my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
-my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
+my $twg; # instance of test word generator
+# /var/tmp is on a tmpfs; /tmp is not
 my $mp2readyfile = '/var/tmp/mp2ready.txt';
+unlink($mp2readyfile) if -f $mp2readyfile;
+
 my $mp2pidfile = '/var/tmp/mp2pid.txt';
+unlink($mp2pidfile) if -f $mp2pidfile;
+
 my $mp2statsfile = '/var/tmp/mp2stats.txt';
+# my $homedir = "/home/berry/Documents/m2";
 my $morseplayer = "./morseplayer2.pl"; 
 
-# global variables
-my $twg;
 my $starttime;
 my $duration;
 my $successes;
 my $autoextraweights = '';
 my $abortpendingtime = 0;
+my $userabort = 0;
 my $prevspacetime = 0;
+
 my $pulsecount = 0;
+my $totalcharcount = 0; # includes spaces
 my $nonblankcharcount = 0;
-my @userwords;
+
+my $slowresponsethreshold = 1; # seconds
+my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
+my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
+
+my @alluserinput = ();
+my $userwordcnt;
 my $testwordcnt;
-my $userwordinput;
+my @userwordinput;
+my $userword;
+my @testwordstats;
 
 # container for histograms
 my $h = {};
@@ -49,7 +61,6 @@ my $mdlg = MainDialog->init(\&mainwindowcallback);
 my $e = $mdlg->{e};
 my $d = $mdlg->{d};
 
-unlink($mp2pidfile) if -f $mp2pidfile;
 validateSettings();
 setexweights();
 
@@ -167,12 +178,15 @@ sub startAuto {
    $mdlg->setControlState('disabled');
    $successes = 0;
    $pulsecount = 0;
+   $totalcharcount = 0;
    $nonblankcharcount = 0;
    $abortpendingtime = 0;
    $prevspacetime = 0;
-   @userwords = ();
-   $userwordinput = [];
+   @alluserinput = ();
+   @userwordinput = ();
+   $userwordcnt = 0;
    $testwordcnt = 0;
+   $userword = '';
 
    $h->{reactionsbychar} = Histogram->new;
    $h->{reactionsbypos} = Histogram->new;
@@ -201,16 +215,9 @@ sub startAuto {
 
 sub abortAuto {
    $abortpendingtime = time();
+   $userabort = 1;
    $starttime = time() unless defined $starttime; # ensure defined
    $duration = time() - $starttime;
-
-   open(PIDFILE, $mp2pidfile);
-   my $mp2pid = <PIDFILE>;
-   close(PIDFILE);
-   chomp($mp2pid);
-   kill('SIGTERM', $mp2pid); # ask player to terminate early
-   unlink($mp2pidfile);
-
    stopAuto(); 
 }
 
@@ -244,16 +251,17 @@ sub checkwordchar {
    if ($ch eq "\b") {
       if ($e->{allowbackspace}) {
          # discard final character and stats 
-         pop(@{$userwordinput});
+         pop(@userwordinput);
+         $userword = substr($userword, 0, -1);
       }
    } else {
       if ($ch eq ' ') {
          # ignore a double space if less than 500ms between them
 
-         if ((scalar(@{$userwordinput}) == 0) and ($thischtime < $prevspacetime + 0.5)) {
+         if ((scalar(@userwordinput) == 0) and ($thischtime < $prevspacetime + 0.5)) {
             $ch = '';
          } else {
-            push(@{$userwordinput}, {ch => ' ', t => $thischtime});
+            push(@userwordinput, "$ch\t$thischtime\n");
          }
 
          $prevspacetime = $thischtime;
@@ -267,8 +275,6 @@ sub checkwordchar {
                $abortpendingtime = time(); 
             } else {
                my $testword = $twg->{prevword};
-               my $userword = getwordtext($userwordinput);
-
                if (($userword ne $testword) and $e->{retrymistakes}) {
                   $d->insert('end', '# ');
                } else {
@@ -278,15 +284,20 @@ sub checkwordchar {
                print MP "$testword\n";
             }
          } else {
-            if (scalar(@userwords) + 1 >= $testwordcnt) {
+            $userwordcnt++;
+
+            if ($userwordcnt >= $testwordcnt) {
                $abortpendingtime = time();
             } 
          }
 
-         push(@userwords, $userwordinput);
-         $userwordinput = [];
+         chomp(@userwordinput);
+         push(@alluserinput, @userwordinput);
+         @userwordinput = ();
+         $userword = '';
       } else {
-         push(@{$userwordinput}, {ch => $ch, t => $thischtime});
+         push(@userwordinput, "$ch\t$thischtime\n");
+         $userword .= $ch;
       }
    }
 }
@@ -297,10 +308,10 @@ sub checksinglechar {
    my $thischtime = time();
 
    if ($ch ne ' ' and $ch ne "\b") {
-      push(@{$userwordinput}, {ch => $ch, t => $thischtime});
-      push(@{$userwordinput}, {ch => ' ', t => $thischtime});
-      push(@userwords, $userwordinput);
-      $userwordinput = [];
+      push(@userwordinput, "$ch\t$thischtime");
+      push(@userwordinput, " \t$thischtime");
+      push(@alluserinput, @userwordinput);
+      @userwordinput = ();
 
       syncflush();
 
@@ -397,6 +408,7 @@ sub markword {
       my $reaction = $usertime - $endchartime;
 
       $pulsecount += $testpulsecnt; # for  whole session
+      $totalcharcount++; # count spaces as chars
 
       if (not $e->{measurecharreactions}) {
          # note when user started to respond and when end of word was detectable
@@ -507,12 +519,24 @@ sub marktest {
    unlink($mp2statsfile);
 
    chomp @teststats;
+   chomp @alluserinput;
 
+   my @userwords = ();
    my @testwords = ();
 
    # read test and user word structures from formatted records
    for (my $iw = 0; $iw < $testwordcnt; $iw++) {
+      my $userwordinput = [];
+      
+      while (defined (my $userinput = shift(@alluserinput))) {  
+         my ($userchar, $usertime) = split(/\t/, $userinput);
+         my $userrec = {ch => $userchar, t => $usertime};
+         push(@{$userwordinput}, $userrec);
+         last if ($userchar eq ' ');
+      }
+  
       my $testwordstats = [];
+
       my $testwordendtime = 0;
 
       while (defined (my $teststatsitem = shift(@teststats))) {
@@ -528,10 +552,7 @@ sub marktest {
 
       # if exercise was terminated early, ignore any test content after that time
       # don't abort if on last word of exercise - a quick user response could abort the last word
-      if ($abortpendingtime > 0 and $iw < $testwordcnt - 1 and $testwordendtime > $abortpendingtime) {
-         $testwordcnt = $iw + 1;
-         last;
-      }
+      last if ($abortpendingtime > 0 and $iw < $testwordcnt - 1 and $testwordendtime > $abortpendingtime);
 
       push(@userwords, $userwordinput);
       push(@testwords, $testwordstats);
@@ -669,17 +690,25 @@ sub calibrate {
 
 sub stopAuto {
    $mdlg->stopusertextinput;
-   print MP "#\n";
+
+   if (not $userabort) {
+      print MP "#\n";
+   } else {
+      open(PIDFILE, $mp2pidfile);
+      my $mp2pid = <PIDFILE>;
+      chomp($mp2pid);
+
+      kill('SIGTERM', $mp2pid); # ask player to terminate early
+      unlink($mp2pidfile);
+   }   
+
    close(MP);
 
    syncflush();
 
-   if ($starttime > 0 and $testwordcnt > 0) {
+   if ($starttime > 0) {
       marktest();
-
-      if ($nonblankcharcount > 0) {
-         showresults();
-      }
+      showresults();
    }
 
    my $text = $d->Contents;
@@ -710,15 +739,15 @@ sub showresults {
 
    # statistics used: 
    #   words:  testwordcnt, successes
-   #   chars:  nonblankcharcount, mistakenchars, missedchars
+   #   chars:  nonblankcharcount, totalcharcount, mistakenchars, missedchars
    #   pulses: pulsecount
    #   reactions: reactionsbychar, reactionsbypos - reactions recorded for bad chars but not missed chars
 
-   my $successrate = $successes / $testwordcnt;
+   my $successrate = ($testwordcnt ? $successes / $testwordcnt : 0);
    my $missedcharcnt = $h->{missedchars}->grandcount;
    my $mistakencharcnt = $h->{mistakenchars}->grandcount;
-   my $charsuccessrate = 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount;
-   my $avgpulsecnt = $pulsecount / ($nonblankcharcount + $testwordcnt);
+   my $charsuccessrate = ($nonblankcharcount ? 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount : 0);
+   my $avgpulsecnt = ($totalcharcount ? $pulsecount / $totalcharcount : 0);
 
    my $re = $rwdf->entries; # gridframe control values
    $re->{duration} = sprintf('%i', $duration);
