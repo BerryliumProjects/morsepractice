@@ -34,16 +34,14 @@ my $starttime;
 my $duration;
 my $successes;
 my $autoextraweights = '';
-my $abortpendingtime = 0;
-my $prevspacetime = 0;
-my $pulsecount = 0;
-my $nonblankcharcount = 0;
+my $abortpendingtime;
+my $userabort;
+my $prevspacetime;
+my $pulsecount;
+my $nonblankcharcount;
 my @userwords;
 my $testwordcnt;
 my $userwordinput;
-
-# container for histograms
-my $h = {};
 
 my $mdlg = MainDialog->init(\&mainwindowcallback);
 my $e = $mdlg->{e};
@@ -165,21 +163,13 @@ sub startAuto {
    $d->Contents('');
    $d->focus;
    $mdlg->setControlState('disabled');
-   $successes = 0;
-   $pulsecount = 0;
-   $nonblankcharcount = 0;
    $abortpendingtime = 0;
+   $userabort = 0;
    $prevspacetime = 0;
    @userwords = ();
    $userwordinput = [];
    $testwordcnt = 0;
 
-   $h->{reactionsbychar} = Histogram->new;
-   $h->{reactionsbypos} = Histogram->new;
-   $h->{missedchars} = Histogram->new;
-   $h->{mistakenchars} = Histogram->new;
-   $h->{successbypos} = Histogram->new;
- 
    print MP "= \n";
    sleep 2;
    syncflush();
@@ -201,16 +191,9 @@ sub startAuto {
 
 sub abortAuto {
    $abortpendingtime = time();
+   $userabort = 1;
    $starttime = time() unless defined $starttime; # ensure defined
    $duration = time() - $starttime;
-
-   open(PIDFILE, $mp2pidfile);
-   my $mp2pid = <PIDFILE>;
-   close(PIDFILE);
-   chomp($mp2pid);
-   kill('SIGTERM', $mp2pid); # ask player to terminate early
-   unlink($mp2pidfile);
-
    stopAuto(); 
 }
 
@@ -261,8 +244,6 @@ sub checkwordchar {
          if ($e->{syncafterword}) { 
             syncflush();
 
-            $testwordcnt++; # length of test is variable depending on progress in test duration
-
             if ($e->{practicetime} > 0 and ($e->{practicetime} * 60) < $duration) {
                $abortpendingtime = time(); 
             } else {
@@ -304,8 +285,6 @@ sub checksinglechar {
 
       syncflush();
 
-      $testwordcnt++; # length of test is variable depending on progress in test duration
-
       if ($e->{practicetime} > 0 and ($e->{practicetime} * 60) < $duration) {
          $abortpendingtime = time(); 
       } else {
@@ -327,10 +306,12 @@ sub alignchars {
    my $userinputref = shift;
    my $teststatsref = shift;
 
+   return unless (defined $userinputref);
+
    my $testlen = scalar(@$teststatsref);
    my $userlen = scalar(@$userinputref);
 
-   my $difpos = 0;	 
+   my $difpos = 0;
    
    if ($userlen < $testlen) {
       # user has missed some characters - find first mismatch
@@ -348,6 +329,7 @@ sub alignchars {
 sub getwordtext {
    my $wordref = shift;
 
+   return '' unless (defined $wordref);
    my $wordlen = scalar(@$wordref) - 1; # ignore trailing space
    my $wordtext = '';
 
@@ -362,6 +344,7 @@ sub markword {
    # find characters in error and mark reactions
    my $userinputref = shift;
    my $teststatsref = shift;
+   my $r = shift;
 
    my $testlen = scalar(@$teststatsref);
 
@@ -396,7 +379,7 @@ sub markword {
 
       my $reaction = $usertime - $endchartime;
 
-      $pulsecount += $testpulsecnt; # for  whole session
+      $r->{pulsecount} += $testpulsecnt; # for whole session
 
       if (not $e->{measurecharreactions}) {
          # note when user started to respond and when end of word was detectable
@@ -408,24 +391,24 @@ sub markword {
       $marktestword .= $testchar unless $testchar eq ' ';
 
       if ($testchar ne ' ') {
-         $nonblankcharcount++;
+         $r->{nonblankcharcount}++;
  
          if ($userchar eq '_') { # missed char
-            $h->{missedchars}->add($testchar, 1);
+            $r->{missedchars}->add($testchar, 1);
 
-	    # increase frequency of confused characters for later
+            # increase frequency of confused characters for later
             # any invalid characters will be played as = 
-	    $autoextraweights .= $testchar . $testchar;
-            $h->{successbypos}->add($i, 0);
+            $autoextraweights .= $testchar . $testchar;
+            $r->{successbypos}->add($i, 0);
          } elsif ($userchar ne $testchar) {
-            $h->{mistakenchars}->add($testchar, 1);	    
+            $r->{mistakenchars}->add($testchar, 1);
 
-	    # increase frequency of confused characters for later
+            # increase frequency of confused characters for later
             # any invalid characters will be played as = 
-	    $autoextraweights .= $userchar . $testchar . $testchar;
-            $h->{successbypos}->add($i, 0);
+            $autoextraweights .= $userchar . $testchar . $testchar;
+            $r->{successbypos}->add($i, 0);
          } else { 
-            $h->{successbypos}->add($i, 1); 
+            $r->{successbypos}->add($i, 1);
          }
 
          if ($e->{measurecharreactions}) {
@@ -468,12 +451,12 @@ sub markword {
       my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
 
       if ($e->{measurecharreactions}) {
-         $h->{reactionsbychar}->add($histcharindex, $reaction);
+         $r->{reactionsbychar}->add($histcharindex, $reaction);
       }
 
       # also record reaction/histogram by position in word (key:tab-n)
       if ($e->{measurecharreactions} or $histposindex < 0) {
-         $h->{reactionsbypos}->add($histposindex, $reaction);
+         $r->{reactionsbypos}->add($histposindex, $reaction);
       }
    }
 
@@ -483,14 +466,14 @@ sub markword {
       my $wordreaction = $startuserwordtime - $endtestwordtime;
 
       if ($wordreaction > -3 and $wordreaction < 3) { # ignore if either time is missing
-         $h->{reactionsbypos}->add(-2, $wordreaction);
+         $r->{reactionsbypos}->add(-2, $wordreaction);
 
          printf "Word:  %i\n",  $wordreaction * 1000 + 0.5;
       }
    }
 
    if ($markuserword eq $marktestword) {
-      $successes++;
+      $r->{successes}++;
       $d->insert('end', "$marktestword ");
    } else {
       $d->insert('end', "$markuserword # [$marktestword] "); 
@@ -498,6 +481,8 @@ sub markword {
 }
 
 sub marktest {
+   my $r = {}; # results structure
+
    $d->Contents(''); # clear the text display
 
    # get test report from player
@@ -511,36 +496,50 @@ sub marktest {
    my @testwords = ();
 
    # read test and user word structures from formatted records
-   for (my $iw = 0; $iw < $testwordcnt; $iw++) {
-      my $testwordstats = [];
+   while (scalar(@teststats) > 0) {
+
+      my @testwordstats = ();
       my $testwordendtime = 0;
 
       while (defined (my $teststatsitem = shift(@teststats))) {
          my ($testchar, $testtime, $testpulsecnt) = split(/\t/, $teststatsitem);
          my $testrec = {ch => $testchar, t => $testtime, pcnt => $testpulsecnt};
-         push(@{$testwordstats}, $testrec);
+         push(@testwordstats, $testrec);
 
          if ($testchar eq ' ') {
-            ($testwordendtime) = $testtime;
+            $testwordendtime = $testtime;
             last;
          }
       }
 
       # if exercise was terminated early, ignore any test content after that time
-      # don't abort if on last word of exercise - a quick user response could abort the last word
-      if ($abortpendingtime > 0 and $iw < $testwordcnt - 1 and $testwordendtime > $abortpendingtime) {
-         $testwordcnt = $iw + 1;
+      # allow up to a second of user anticipation on last word
+      if ($abortpendingtime > 0 and $testwordendtime > $abortpendingtime + 1) {
          last;
       }
 
-      push(@userwords, $userwordinput);
-      push(@testwords, $testwordstats);
+      if (scalar(@testwordstats) > 1) { # ignore an empty word or just a space
+         push(@testwords, \@testwordstats);
+      }
    }
+
+   $r->{testwordcnt} = scalar(@testwords);
+   $r->{successes} = 0;
+   $r->{pulsecount} = 0;
+   $r->{nonblankcharcount} = 0;
+
+   $r->{reactionsbychar} = Histogram->new;
+   $r->{reactionsbypos} = Histogram->new;
+   $r->{missedchars} = Histogram->new;
+   $r->{mistakenchars} = Histogram->new;
+   $r->{successbypos} = Histogram->new;
+
+   return if ($r->{testwordcnt} == 0); # possible if aborted early
 
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;
 
-   for (my $itw = 0; $itw < scalar(@testwords); $itw++) {
+   for (my $itw = 0; $itw < $r->{testwordcnt}; $itw++) {
       my $extrauserword = splitword($userwords[$iuw], $testwords[$itw]);
       $iuw++;
 
@@ -553,12 +552,12 @@ sub marktest {
    # re-align words in case user missed a whole word but then successfully resynced
    my $previoususerwordtext = '';
 
-   for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
+   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
       # get text of words
       my $userwordtext = getwordtext($userwords[$iw]);
       my $testwordtext = getwordtext($testwords[$iw]);
 
-      if (($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
+      if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
          # insert notional empty user word with the same time as the start of the next user word
 
          my $dummyspacetime = $userwords[$iw]->[0]->{t};
@@ -572,18 +571,22 @@ sub marktest {
       $previoususerwordtext = $userwordtext;
    }
 
-   for (my $iw = 0; $iw < scalar(@testwords); $iw++) {
+   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
       # re-align characters in words in case some missed
       alignchars($userwords[$iw], $testwords[$iw]);
 
       # analyse word characters
-      markword($userwords[$iw], $testwords[$iw]);
+      markword($userwords[$iw], $testwords[$iw], $r);
    }
+
+   return $r;
 }
 
 sub splitword {
    my $userinputref = shift;
    my $teststatsref = shift;
+
+   return unless (defined $userinputref); # in case less user words than test words
 
    my $userlen = scalar(@$userinputref);
    my $testlen = scalar(@$teststatsref);
@@ -669,16 +672,27 @@ sub calibrate {
 
 sub stopAuto {
    $mdlg->stopusertextinput;
-   print MP "#\n";
+
+   if (not $userabort) {
+      print MP "#\n";
+   } else {
+      open(PIDFILE, $mp2pidfile);
+      my $mp2pid = <PIDFILE>;
+      chomp($mp2pid);
+
+      kill('SIGTERM', $mp2pid); # ask player to terminate early
+      unlink($mp2pidfile);
+   }
+
    close(MP);
 
    syncflush();
 
-   if ($starttime > 0 and $testwordcnt > 0) {
-      marktest();
+   if ($starttime > 0) {
+      my $res = marktest();
 
-      if ($nonblankcharcount > 0) {
-         showresults();
+      if (defined $res and $res->{nonblankcharcount} > 0) {
+         showresults($res);
       }
    }
 
@@ -704,6 +718,7 @@ sub stopAuto {
 }
 
 sub showresults {
+   my $res = shift;
    my $rw = $mdlg->{w}->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
    my $rwdf = DialogFields->init($rw);
    populateresultswindow($rwdf);
@@ -714,19 +729,19 @@ sub showresults {
    #   pulses: pulsecount
    #   reactions: reactionsbychar, reactionsbypos - reactions recorded for bad chars but not missed chars
 
-   my $successrate = $successes / $testwordcnt;
-   my $missedcharcnt = $h->{missedchars}->grandcount;
-   my $mistakencharcnt = $h->{mistakenchars}->grandcount;
-   my $charsuccessrate = 1 - ($missedcharcnt + $mistakencharcnt) / $nonblankcharcount;
-   my $avgpulsecnt = $pulsecount / ($nonblankcharcount + $testwordcnt);
+   my $successrate = $res->{successes} / $res->{testwordcnt};
+   my $missedcharcnt = $res->{missedchars}->grandcount;
+   my $mistakencharcnt = $res->{mistakenchars}->grandcount;
+   my $charsuccessrate = 1 - ($missedcharcnt + $mistakencharcnt) / $res->{nonblankcharcount};
+   my $avgpulsecnt = $res->{pulsecount} / ($res->{nonblankcharcount} + $res->{testwordcnt});
 
    my $re = $rwdf->entries; # gridframe control values
    $re->{duration} = sprintf('%i', $duration);
-   $re->{wordreport} = sprintf('%i%% (%i / %i)', $successrate * 100, $successes, $testwordcnt);
-   $re->{charreport} = sprintf('%i%% (%i missed, %i wrong / %i)', $charsuccessrate * 100, $missedcharcnt, $mistakencharcnt, $nonblankcharcount);
-   $re->{missedchars} = join('', @{$h->{missedchars}->keys});
-   $re->{mistakenchars} = join('', @{$h->{mistakenchars}->keys});
-   $re->{pariswpm} = sprintf('%.1f', ($pulsecount / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
+   $re->{wordreport} = sprintf('%i%% (%i / %i)', $successrate * 100, $res->{successes}, $res->{testwordcnt});
+   $re->{charreport} = sprintf('%i%% (%i missed, %i wrong / %i)', $charsuccessrate * 100, $missedcharcnt, $mistakencharcnt, $res->{nonblankcharcount});
+   $re->{missedchars} = join('', @{$res->{missedchars}->keys});
+   $re->{mistakenchars} = join('', @{$res->{mistakenchars}->keys});
+   $re->{pariswpm} = sprintf('%.1f', ($res->{pulsecount} / 50) * $charsuccessrate / ($duration / 60)); # based on elements decoded
    $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
    $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
 
@@ -736,7 +751,7 @@ sub showresults {
    $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $stdcharpausetime * 100); # as percentage
  
    # Report slowest average reaction times by character
-   my %avgreactionsbychar = %{$h->{reactionsbychar}->averages};
+   my %avgreactionsbychar = %{$res->{reactionsbychar}->averages};
    my @worstchars = sort {$avgreactionsbychar{$b} <=> $avgreactionsbychar{$a}} (keys %avgreactionsbychar);
 
    my $worstcharsreport = '';
@@ -753,7 +768,7 @@ sub showresults {
    $rwdf->{controls}->{worstchars}->Contents($worstcharsreport);
 
    # Report average reaction times by position in word
-   my %avgreactionsbypos = %{$h->{reactionsbypos}->averages};
+   my %avgreactionsbypos = %{$res->{reactionsbypos}->averages};
    my @worstcharpos = sort keys %avgreactionsbypos;
 
    my $worstcharposreport = '';
@@ -775,13 +790,13 @@ sub showresults {
    $rwdf->{controls}->{worstcharpos}->Contents($worstcharposreport);
 
    # Report success rate by position in word
-   my %avgsuccessbypos = %{$h->{successbypos}->averages};
+   my %avgsuccessbypos = %{$res->{successbypos}->averages};
 
    my $positionsuccessreport = '';
 
    foreach my $pos (sort keys %avgsuccessbypos) {
       my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
-      $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $h->{successbypos}->keytotal($pos), $h->{successbypos}->keycount($pos));
+      $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $res->{successbypos}->keytotal($pos), $res->{successbypos}->keycount($pos));
    }
 
    $rwdf->{controls}->{positionsuccesses}->Contents($positionsuccessreport); 
