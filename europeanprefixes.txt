@@ -1,0 +1,53 @@
+CT	Portugal
+DL	Germany
+DJ	Germany
+DK	Germany
+EA	Spain
+EI	Ireland
+F	France
+G	England
+GB	UK special
+GX	UK club
+GD	Isle of Man
+GM	Scotland
+GW	Wales
+GN	N Ireland
+GJ	Jersey
+M	England
+MD	Isle of Man
+MM	Scotland
+MW	Wales
+MN	N Ireland
+MJ	Jersey
+HA	Hungary
+HB	Switzerland
+HF	Poland
+I	Italy
+LA	Norway
+LX	Luxembourg
+LY	Lithuania
+LZ	Bulgaria
+OE	Austria
+OH	Finland
+OK	Czechia
+OM	Slovakia
+ON	Belgium
+OZ	Denmark
+PA	Netherlands
+UA	Russia
+R	Russia
+SM	Sweden
+SP	Poland
+SV	Greece
+TU	Turkey
+TF	Iceland
+UR	Ukraine
+YL	Latvia
+2E	UK
+2M	Scotland
+2W	Wales
+2D	Isle of Man
+2N	N Ireland
+2J	Jersey
+5B	Cyprus
+9A	Croatia

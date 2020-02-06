@@ -121,11 +121,11 @@ sub prepareTest {
    }
 
    if ($e->{usescalls}) {
-      $twg->addCallsign(0, 200);
+      $twg->addCallsign($e->{europrefix}, 0, 200);
    }
 
    if ($e->{useicalls}) {
-      $twg->addCallsign(1, 50);
+      $twg->addCallsign($e->{europrefix}, 1, 50);
    }
 
    $e->{wordlistsize} = $twg->{size};

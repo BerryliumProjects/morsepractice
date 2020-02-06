@@ -50,11 +50,11 @@ $w = TestWordGenerator->new(4,10);
 
 ok (defined($w), '$w defined');
 
-$w->addCallsign(0, 3);
-ok ($w->{size} == 3, '3 standard callsigns added');
+$w->addCallsign(1, 0, 3);
+ok ($w->{size} == 3, '3 euro simple callsigns added');
 
-$w->addCallsign(1, 3);
-ok ($w->{size} == 6, '3 international callsigns added');
+$w->addCallsign(0, 1, 3);
+ok ($w->{size} == 6, '3 random complex callsigns added');
 
 ok ($w->chooseWord ne '', 'first word chosen');
 ok ($w->chooseWord ne '', 'second word chosen');

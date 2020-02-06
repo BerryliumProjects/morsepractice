@@ -32,16 +32,16 @@ sub addDictionary {
          chomp $word;
          $word =~ s/^ +//;
          $word =~ s/ +$//;
-         
+
          # don't apply length constraints to phrases
-         if ($word =~ ' ' or (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength})) { 
+         if ($word =~ ' ' or (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength})) {
             $c++;
             if ($c > $offset) {
                $self->addWord($word);
                last if ($c >= $offset + $maxcount);
             }
          }
-      } 
+      }
    }
 
    close(WL);
@@ -86,12 +86,12 @@ sub addPseudo {
       while($wordlength < $targetwordlength) {
          my $elements = ($wantvowel ? $vowels : $consonants);
          $word .= chooseElement($elements, $wordlength, $targetwordlength);
-         
+
          $wantvowel = not $wantvowel;
-         $wordlength = length($word);      
+         $wordlength = length($word);
       }
-      
-      # truncate the word to the maximum length - assume first letter of final element is also ok at end of word 
+
+      # truncate the word to the maximum length - assume first letter of final element is also ok at end of word
       $word = substr($word, 0, $self->{maxlength});
       $self->addWord($word);
    }
@@ -100,11 +100,12 @@ sub addPseudo {
 
 sub addCallsign {
    my $self = shift;
-   my $international = shift;
+   my $europrefix = shift;
+   my $complex = shift;
    my $count = shift;
 
    my @alpha;
-  
+
    foreach ('a' .. 'z') {
       push @alpha, $_;
    }
@@ -121,22 +122,35 @@ sub addCallsign {
    for (my $i = 0; $i < $count; $i++) {
       my @prefixes;
 
-      for (my $j = 0; $j<2; $j++) {
-         my $prefix = $alphanum[int(rand(36))];
-         if ($prefix =~ /\d/) {
-            # prefixes starting with a digit must also include a letter
-            $prefix .= $alpha[int(rand(26))];
-         } elsif (rand(100) > 30) {
-            # prefixes starting with a letter may be length 1 or 2
-            $prefix .= $alpha[int(rand(26))];
+      if ($europrefix and open(EUROPFX, "europeanprefixes.txt")) {
+            my @europrefixes = <EUROPFX>;
+            close(EUROPFX);
+            chomp(@europrefixes);
+
+         for (my $j = 0; $j<2; $j++) {
+            my $prefix = $europrefixes[int(rand(scalar(@europrefixes)))];
+            $prefix =~ s/\t.*//;
+            push @prefixes, $prefix;
          }
- 
-         push @prefixes, $prefix;
+      } else {
+         for (my $j = 0; $j<2; $j++) {
+            my $prefix = $alphanum[int(rand(36))];
+
+            if ($prefix =~ /\d/) {
+               # prefixes starting with a digit must also include a letter
+               $prefix .= $alpha[int(rand(26))];
+            } elsif (rand(100) > 30) {
+               # prefixes starting with a letter may be length 1 or 2
+               $prefix .= $alpha[int(rand(26))];
+            }
+
+            push @prefixes, $prefix;
+         }
       }
 
       my $word = $prefixes[0];
 
-      if ($international) {
+      if ($complex) {
          # extra operating country prefix
          $word .= '/' . $prefixes[1];
       }
@@ -145,13 +159,13 @@ sub addCallsign {
       $word .= $num[int(rand(10))];
       $word .= $alpha[int(rand(26))];
       $word .= $alpha[int(rand(26))];
-      
+
       if (rand(100) > 25) {
          # make some callsigns include only 2 serial characters
          $word .= $alpha[int(rand(26))];
       }
 
-      if ($international) {
+      if ($complex) {
          my $suffixpc = rand(100);
 
          if ($suffixpc > 80) {
@@ -183,7 +197,7 @@ sub chooseElement {
    my $targetwordlength = shift;
 
    # determine if need an element suitable for the beginning / middle / end of a word
-   my $elementPosition = 
+   my $elementPosition =
       ($wordlength == 0) ? 'b' :
       ($wordlength < $targetwordlength -2) ? 'm' :
       'e';
@@ -214,7 +228,7 @@ sub readElements {
    chomp(@elementlines);
    close(EFILE);
 
-   (@elementlines > 2) or 
+   (@elementlines > 2) or
       die "Not enough elements in $file";
 
    foreach (@elementlines) {
