@@ -4,7 +4,7 @@ use strict;
 package DialogFields;
 
 sub init {
-   my ($class, $w, $callback) = @_;
+   my ($class, $w, $callback, $mincolwidth) = @_;
    
    my $dfref = {};
    bless $dfref, $class;
@@ -13,6 +13,12 @@ sub init {
    $dfref->{entries} = {};
    $dfref->{attr} = {}; # attributes
    $dfref->{g} = $w->Frame->pack; # frame for grid containing controls with labels at left
+
+   if ($mincolwidth) {
+     $dfref->{g}->gridColumnconfigure(1, '-minsize' => $mincolwidth);
+     $dfref->{g}->gridColumnconfigure(2, '-minsize' => $mincolwidth);
+   }
+
    $dfref->{row} = 0; # row counter for g
    $dfref->{b} = undef; # frame for grid containing buttons - define later
    $dfref->{col} = 0; # column counter for b
@@ -48,7 +54,7 @@ sub addEntryField {
    $labelctl->grid(-row=>$row, -column=>1, -sticky=>'w');
 
    my $entryctl = $self->{g}->Entry(-width=>$width, -font=>'msgbox', -textvariable=>\$self->{entries}->{$ctlvar});
-   $entryctl->grid(-row=>$row, -column=>2, -sticky=>'e');
+   $entryctl->grid(-row=>$row, -column=>2, -sticky=>'w');
    $self->{controls}->{$ctlvar} = $entryctl;
 
    if (defined $shortcutaltkey) {
@@ -73,7 +79,6 @@ sub addEntryField {
    return $entryctl;
 }
 
-
 sub addCheckbuttonField {
    my $self = shift;
    my $ctllabel = shift;
@@ -91,6 +96,53 @@ sub addCheckbuttonField {
 
    my $labelctl = $self->{g}->Label(-text=>$ctllabel, -font=>'msgbox');
    $labelctl->grid(-row=>$row, -column=>1, -sticky=>'w');
+
+   my $entryctl = $self->{g}->Checkbutton(-font=>'msgbox', -variable=>\$self->{entries}->{$ctlvar});
+   $entryctl->grid(-row=>$row, -column=>1, -sticky=>'e');
+   $self->{controls}->{$ctlvar} = $entryctl;
+
+   if (defined $shortcutaltkey) {
+      $self->{w}->bind("<Alt-KeyPress-$shortcutaltkey>", [$entryctl => 'focus']);
+      my $underlinepos = index(lc($ctllabel),$shortcutaltkey);
+
+      if ($underlinepos >= 0) {
+         $labelctl->configure(-underline=>$underlinepos);
+      }
+   }
+
+   $entryctl->bind('<ButtonPress-1>', [$entryctl => 'focus']);
+
+   if (defined $command) {
+      $entryctl->configure(-command=>$command);
+   }
+
+   if ($attributes =~ /locked/) {
+      $entryctl->configure(-state=>'disabled');
+   }
+
+   $self->{attr}->{$ctlvar} = "checkbutton $attributes ";
+
+   return $entryctl;
+}
+
+
+sub addCheckbuttonField2 {
+   my $self = shift;
+   my $ctllabel = shift;
+   my $ctlvar = shift;
+   my $initvalue = shift;
+   my $shortcutaltkey = shift;
+   my $command = shift;
+   my $attributes = shift;
+
+   (defined $attributes) or ($attributes = '');
+
+   $self->{entries}->{$ctlvar} = $initvalue;
+
+   my $row = $self->{row}; # same row as left check button field
+
+   my $labelctl = $self->{g}->Label(-text=>$ctllabel, -font=>'msgbox');
+   $labelctl->grid(-row=>$row, -column=>2, -sticky=>'w');
 
    my $entryctl = $self->{g}->Checkbutton(-font=>'msgbox', -variable=>\$self->{entries}->{$ctlvar});
    $entryctl->grid(-row=>$row, -column=>2, -sticky=>'e');

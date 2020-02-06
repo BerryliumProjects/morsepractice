@@ -24,7 +24,7 @@ sub init {
 
    $self->{w}->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
 
-   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback);
+   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback,300);
    $self->{e} = $mwdf->entries; # gridframe control values
 
    $mwdf->addEntryField('Characters to practice', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
@@ -38,25 +38,23 @@ sub init {
    $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
    $mwdf->addEntryField('Dash Weight', 'dashweight', 40, 3);
    $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
-
-   $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $mwdf->addCheckbuttonField('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
-   $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
-   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
-   $mwdf->addCheckbuttonField('Use Random Sequences', 'userandom',  1);
-   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0);
-   $mwdf->addCheckbuttonField('Use English Dictionary', 'useedict',  0);
-   $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0);
-   $mwdf->addCheckbuttonField('Use QSO Phrases', 'useqphrases',  0);
-   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0);
-   $mwdf->addCheckbuttonField('Use Complex Callsigns', 'useicalls',  0);
-   $mwdf->addCheckbuttonField('Measure character reaction times', 'measurecharreactions',  1);
-
    $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
    $mwdf->addEntryField('Dictionary Sample Size', 'dictsize', 40, 9999);
    $mwdf->addEntryField('Dictionary Sample Offset', 'dictoffset', 40, 0);
    $mwdf->addEntryField('Extra Character Weights', 'xweights', 40, '');
 
+   $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
+   $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
+   $mwdf->addCheckbuttonField2('Character reaction times', 'measurecharreactions',  1);
+   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
+   $mwdf->addCheckbuttonField2('Use Random Sequences', 'userandom',  1);
+   $mwdf->addCheckbuttonField('Use Pseudo Words', 'usepseudo',  0);
+   $mwdf->addCheckbuttonField2('Use English Dictionary', 'useedict',  0);
+   $mwdf->addCheckbuttonField('Use QSO Dictionary', 'useqdict',  0);
+   $mwdf->addCheckbuttonField2('Use QSO Phrases', 'useqphrases',  0);
+   $mwdf->addCheckbuttonField('Use Standard Callsigns', 'usescalls',  0);
+   $mwdf->addCheckbuttonField2('Use Complex Callsigns', 'useicalls',  0);
 
    $self->{d} = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '');
    $self->{d}->focus;
