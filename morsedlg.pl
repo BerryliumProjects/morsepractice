@@ -207,10 +207,10 @@ sub checkchar {
    $ch =~ s/\r/ /; # newline should behave like space as word terminator
 
    if ($ch ne '') { # ignore empty characters (e.g. pressing shift)
-      if ($e->{maxwordlength} > 1) {
-         checkwordchar($ch);
-      } else {
+      if ($e->{maxwordlength} == 1 and $e->{syncafterword}) {
          checksinglechar($ch);
+      } else {
+         checkwordchar($ch);
       }
    }
 
