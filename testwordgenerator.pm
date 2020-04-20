@@ -80,7 +80,7 @@ sub addPseudo {
       my $targetwordlength = int(rand($self->{maxlength} - $self->{minlength})) + $self->{minlength};
       my $word = '';
       my $wordlength = 0;
-      my $wantvowel = (int(rand(2)) > 0); # choose initial type of element
+      my $wantvowel = (int(rand(5)) == 0); # choose initial vowel 20% of the time
 
       # alternate between vowel and consonant elements until the target word length is reached or exceeded
       while($wordlength < $targetwordlength) {
