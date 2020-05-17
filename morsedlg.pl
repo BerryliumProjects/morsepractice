@@ -19,6 +19,7 @@ use testwordgenerator;
 use histogram;
 use maindialog;
 use resultsdialog;
+use word;
 
 # constants
 my $slowresponsethreshold = 1; # seconds
@@ -35,7 +36,6 @@ my $starttime;
 my $autoextraweights = '';
 my $abortpendingtime;
 my $userabort;
-my $prevspacetime;
 my @userwords;
 my $testwordcnt;
 my $userwordinput;
@@ -166,9 +166,9 @@ sub startAuto {
    $mdlg->setControlState('disabled');
    $abortpendingtime = 0;
    $userabort = 0;
-   $prevspacetime = 0;
+   Word->debounce('');
    @userwords = ();
-   $userwordinput = [];
+   $userwordinput = Word->createfromchar;
    $testwordcnt = 0;
 
    print MP "= \n";
@@ -221,25 +221,16 @@ sub checkchar {
 
 sub checkwordchar {
    my $ch = shift;
-   my $thischtime = time();
 
    if ($ch eq "\b") {
       if ($e->{allowbackspace}) {
          # discard final character and stats 
-         pop(@{$userwordinput});
+         $userwordinput->undo;
       }
    } else {
-      if ($ch eq ' ') {
-         # ignore a double space if less than 500ms between them
+      $userwordinput->append($ch);
 
-         if ((scalar(@{$userwordinput}) == 0) and ($thischtime < $prevspacetime + 0.5)) {
-            $ch = '';
-         } else {
-            push(@{$userwordinput}, {ch => ' ', t => $thischtime});
-         }
-
-         $prevspacetime = $thischtime;
-
+      if ($userwordinput->{complete}) {
          if ($e->{syncafterword}) { 
             syncflush();
 
@@ -247,7 +238,7 @@ sub checkwordchar {
                $abortpendingtime = time(); 
             } else {
                my $testword = $twg->{prevword};
-               my $userword = getwordtext($userwordinput);
+               my $userword = $userwordinput->wordtext;
 
                if (($userword ne $testword) and $e->{retrymistakes}) {
                   $d->insert('end', '# ');
@@ -264,9 +255,7 @@ sub checkwordchar {
          }
 
          push(@userwords, $userwordinput);
-         $userwordinput = [];
-      } else {
-         push(@{$userwordinput}, {ch => $ch, t => $thischtime});
+         $userwordinput = Word->createfromchar;
       }
    }
 }
@@ -274,152 +263,62 @@ sub checkwordchar {
 sub checksinglechar {
    my $ch = shift;
 
-   my $thischtime = time();
+   my $userwordinput = Word->createfromchar($ch);
 
-   if ($ch ne ' ' and $ch ne "\b") {
-      push(@{$userwordinput}, {ch => $ch, t => $thischtime});
-      push(@{$userwordinput}, {ch => ' ', t => $thischtime});
-      push(@userwords, $userwordinput);
-      $userwordinput = [];
+   push(@userwords, $userwordinput);
+   syncflush();
 
-      syncflush();
+   if ($e->{practicetime} * 60 < time() - $starttime) {
+      $abortpendingtime = time(); 
+   } else {
+      my $testword = $twg->{prevword};
 
-      if ($e->{practicetime} * 60 < time() - $starttime) {
-         $abortpendingtime = time(); 
+      if (($userwordinput->wordtext ne $testword) and $e->{retrymistakes}) {
+         $d->insert('end', '# '); # repeat previous word
       } else {
-         my $testword = $twg->{prevword};
+         $testword = $twg->chooseWord;
+      }
 
-         if (("$ch" ne $testword) and $e->{retrymistakes}) {
-            $d->insert('end', '# '); # repeat previous word
-         } else {
-            $testword = $twg->chooseWord;
+      print MP "$testword\n";
+   }
+}
+
+sub addtestweight {
+   # add extra weight to poorly received characters, for the next practice session
+   my $userchar = shift;
+   my $testchar = shift;
+   my $slowreaction = shift;
+
+   if ($testchar ne ' ') {
+      if ($userchar eq '_') {
+         # increase frequency of missed characters for later
+         $autoextraweights .= $testchar . $testchar;
+      } elsif ($userchar ne $testchar) {
+         # increase frequency of confused characters for later
+         # any invalid characters will be played as = 
+         $autoextraweights .= $userchar . $testchar . $testchar;
+
+         if ($slowreaction) {
+            $autoextraweights .= $testchar;
          }
-
-         print MP "$testword\n";
       }
    }
 }
 
-sub alignchars {
-   # if user entry is too short, insert blanks to realign to correct length
-   my $userinputref = shift;
-   my $teststatsref = shift;
+my $prevusertime = undef; # used by showcharstats
 
-   return unless (defined $userinputref);
+sub showcharstats {
+   # show character statistics on the terminal
+   my $userchar = shift;
+   my $testchar = shift;
+   my $reaction = shift;
+   my $usertime = shift;
+   my $testpulsecnt = shift;
 
-   my $testlen = scalar(@$teststatsref);
-   my $userlen = scalar(@$userinputref);
+   my $typingtimems = '';
+   my $reactionms = '';
 
-   my $difpos = 0;
-   
-   if ($userlen < $testlen) {
-      # user has missed some characters - find first mismatch
-      for ($difpos = 0; $difpos < $userlen; $difpos++) { 
-         last if ($userinputref->[$difpos]->{ch} ne $teststatsref->[$difpos]->{ch});
-      }
-
-      # assume first mismatch is really a gap, and fill it
-      for ($userlen .. $testlen - 1) {
-         splice @$userinputref, $difpos, 0, {ch => '_', t => $userinputref->[$difpos]->{t}};
-      }
-   }
-}
-
-sub getwordtext {
-   my $wordref = shift;
-
-   return '' unless (defined $wordref);
-   my $wordlen = scalar(@$wordref) - 1; # ignore trailing space
-   my $wordtext = '';
-
-   for (my $i = 0; $i < $wordlen; $i++) {
-      $wordtext .= $wordref->[$i]->{ch};
-   }
-
-   return $wordtext;
-}
-
-sub markword { 
-   # find characters in error and mark reactions
-   my $userinputref = shift;
-   my $teststatsref = shift;
-   my $r = shift;
-
-   my $testlen = scalar(@$teststatsref);
-
-   my $startuserwordtime = 0;
-   my $endtestwordtime = 0;
-   my $markuserword = '';
-   my $marktestword = '';
-   my $prevusertime; # initially undef
- 
-   for (my $i = 0; $i < $testlen; $i++) {
-      my $userinput = $userinputref->[$i];
-      my $teststatsitem = $teststatsref->[$i];
-
-      my $userchar = $userinput->{ch};
-      my $testchar = $teststatsitem->{ch};
-      my $endchartime = $teststatsitem->{t};
-      my $testpulsecnt = $teststatsitem->{pcnt};
-
-      if ($testchar eq ' ') {
-         # measure reaction from when next character would have been expected
-         $endchartime = $teststatsref->[$i-1]->{t};
-      }
-
-      my $usertime = $userinput->{t};
-
-      if (not defined $usertime) {
-         # user input missing - possible at end of exercise after all other re-alignments attempted
-         # use reasonable dummy values
-         $usertime = $endchartime;
-         $userchar = '_';
-      }
-
-      my $reaction = $usertime - $endchartime;
-
-      $r->{pulsecount} += $testpulsecnt; # for whole session
-
-      if (not $e->{measurecharreactions}) {
-         # note when user started to respond and when end of word was detectable
-         $startuserwordtime = $usertime unless $startuserwordtime;
-         $endtestwordtime = $endchartime;
-      }
-
-      $markuserword .= $userchar unless $userchar eq ' ';
-      $marktestword .= $testchar unless $testchar eq ' ';
-
-      if ($testchar ne ' ') {
-         $r->{nonblankcharcount}++;
- 
-         if ($userchar eq '_') { # missed char
-            $r->{missedchars}->add($testchar, 1);
-
-            # increase frequency of confused characters for later
-            # any invalid characters will be played as = 
-            $autoextraweights .= $testchar . $testchar;
-            $r->{successbypos}->add($i, 0);
-         } elsif ($userchar ne $testchar) {
-            $r->{mistakenchars}->add($testchar, 1);
-
-            # increase frequency of confused characters for later
-            # any invalid characters will be played as = 
-            $autoextraweights .= $userchar . $testchar . $testchar;
-            $r->{successbypos}->add($i, 0);
-         } else { 
-            $r->{successbypos}->add($i, 1);
-         }
-
-         if ($e->{measurecharreactions}) {
-            if ($reaction > $slowresponsethreshold) {
-               $autoextraweights .= $testchar;
-            }
-         }
-      }
-
-      my $typingtimems = '';
-      my $reactionms = '';
-
+   if ($userchar ne '') {
       if ($userchar ne '_') {
          $reactionms = int($reaction * 1000 + 0.5);
 
@@ -434,41 +333,105 @@ sub markword {
                $typingtimems = '' # don't show misleading values
             }
          }
-
-         $prevusertime = $usertime;
       }
 
       my $testchardurationms = int($testpulsecnt * 1.2 / $e->{wpm} * 1000 + 0.5);
       # treat reactionms and typingtimems as strings as could be blank if n/a
-      printf "%1s%5d%2s%5s%5s\n", $testchar, $testchardurationms, $userchar, $reactionms, $typingtimems;
+      printf "%1s%5s%2s%5s%5s\n", $testchar, $testchardurationms, $userchar, $reactionms, $typingtimems;
 
-      if ($reaction < $minimumreaction and $userchar eq '_') {
-         $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
+      if ($testchar eq ' ') {
+         $prevusertime = undef; # prime for next word
+      } else {
+         $prevusertime = $usertime;
       }
-
-      my $histcharindex = ($testchar eq ' ') ? '>' : $testchar; # for legibility
-      my $histposindex = ($testchar eq ' ') ? -1 : $i; # notional index for word gap
-
-      if ($e->{measurecharreactions}) {
-         $r->{reactionsbychar}->add($histcharindex, $reaction);
-      }
-
-      # also record reaction/histogram by position in word (key:tab-n)
-      if ($e->{measurecharreactions} or $histposindex < 0) {
-         $r->{reactionsbypos}->add($histposindex, $reaction);
-      }
+   } else { 
+      $reactionms = int($reaction * 1000 + 0.5);
+      printf "Word:%4s\n", $reactionms;
    }
+}
+
+sub markchar { 
+   # find characters in error and mark reactions
+   my $userchar = shift;
+   my $usertime = shift;
+   my $testchar = shift;
+   my $endchartime = shift;
+   my $testpulsecnt = shift;
+   my $i = shift;
+   my $r = shift;
+
+   my $reaction = $usertime - $endchartime;
+
+   addtestweight($userchar, $testchar, $reaction > $slowresponsethreshold);
+
+   showcharstats($userchar, $testchar, $reaction, $usertime, $testpulsecnt);
+
+   $r->{pulsecount} += $testpulsecnt; # for whole session
+   $r->{nonblankcharcount}++;
+ 
+   if ($userchar eq '_') { # missed char
+      $r->{missedchars}->add($testchar, 1);
+      $r->{successbypos}->add($i, 0);
+   } elsif ($userchar ne $testchar) {
+      $r->{mistakenchars}->add($testchar, 1);
+      $r->{successbypos}->add($i, 0);
+   } else { 
+      $r->{successbypos}->add($i, 1);
+   }
+
+   if ($reaction < $minimumreaction and $userchar eq '_') {
+      $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
+   }
+
+   my $histcharindex = $testchar;
+   my $histposindex = $i;
+
+   if ($e->{measurecharreactions}) {
+      $r->{reactionsbychar}->add($testchar, $reaction);
+      $r->{reactionsbypos}->add($i, $reaction);
+   }
+}
+
+sub markword { 
+   # find characters in error and mark reactions
+   my $userinputref = shift;
+   my $teststatsref = shift;
+   my $r = shift;
+
+   my $markuserword = $userinputref->wordtext;
+   my $marktestword = $teststatsref->wordtext;
+ 
+   my $testwordlength = length($marktestword);
+   for (my $i = 0; $i < $testwordlength; $i++) {
+      my ($userchar, $usertime) = $userinputref->chardata($i);
+      my ($testchar, $endchartime, $testpulsecnt) = $teststatsref->chardata($i);
+      markchar($userchar, $usertime, $testchar, $endchartime, $testpulsecnt, $i, $r);
+   }
+
+   my ($userspace, $userspacetime) = $userinputref->chardata($testwordlength);
+   my ($testspace, $endspacetime, $testspacepulsecnt) = $teststatsref->chardata($testwordlength);
+
+   # measure reaction from when next character would have been expected
+   $endspacetime = $teststatsref->{endtime};
+
+   my $spacereaction = $userspacetime - $endspacetime;
+   showcharstats(' ', ' ', $spacereaction, $userspacetime, $testspacepulsecnt);
+
+   $r->{pulsecount} += $testspacepulsecnt; # for whole session
+
+   if ($e->{measurecharreactions}) {
+      $r->{reactionsbychar}->add('>', $spacereaction);
+   }
+
+   # also record reaction/histogram by position in word (key:tab-n)
+   $r->{reactionsbypos}->add(-1, $spacereaction);
 
    # if in word recognition mode, note reaction time to start entering word
    # the end of the word can be detected as soon as the next expected element is absent
    if (not $e->{measurecharreactions}) {
-      my $wordreaction = $startuserwordtime - $endtestwordtime;
-
-      if ($wordreaction > -3 and $wordreaction < 3) { # ignore if either time is missing
-         $r->{reactionsbypos}->add(-2, $wordreaction);
-
-         printf "Word:  %i\n",  $wordreaction * 1000 + 0.5;
-      }
+      my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
+      $r->{reactionsbypos}->add(-2, $wordreaction);
+      showcharstats('', '', $wordreaction);
    }
 
    if ($markuserword eq $marktestword) {
@@ -485,42 +448,26 @@ sub marktest {
    $d->Contents(''); # clear the text display
 
    # get test report from player
-   open (STATS, $mp2statsfile);
-   my @teststats = <STATS>;
-   close(STATS);
-   unlink($mp2statsfile);
-
-   chomp @teststats;
+   my $statshandle;
+   open ($statshandle, $mp2statsfile);
 
    my @testwords = ();
+   my $testword = Word->createfromfile($statshandle);
 
    # read test and user word structures from formatted records
-   while (scalar(@teststats) > 0) {
-
-      my @testwordstats = ();
-      my $testwordendtime = 0;
-
-      while (defined (my $teststatsitem = shift(@teststats))) {
-         my ($testchar, $testtime, $testpulsecnt) = split(/\t/, $teststatsitem);
-         my $testrec = {ch => $testchar, t => $testtime, pcnt => $testpulsecnt};
-         push(@testwordstats, $testrec);
-
-         if ($testchar eq ' ') {
-            $testwordendtime = $testtime;
-            last;
-         }
-      }
-
+   while ($testword->{complete}) {
       # if exercise was terminated early, ignore any test content after that time
       # allow up to a second of user anticipation on last word
-      if ($abortpendingtime > 0 and $testwordendtime > $abortpendingtime + 1) {
+      if ($abortpendingtime > 0 and $testword->{endtime} > $abortpendingtime + 1) {
          last;
       }
 
-      if (scalar(@testwordstats) > 1) { # ignore an empty word or just a space
-         push(@testwords, \@testwordstats);
-      }
+      push(@testwords, $testword);
+      $testword = Word->createfromfile($statshandle);
    }
+
+   close($statshandle);
+   unlink($mp2statsfile);
 
    $r->{testwordcnt} = scalar(@testwords);
    $r->{duration} = time() - $starttime;
@@ -539,30 +486,35 @@ sub marktest {
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;
 
-   for (my $itw = 0; $itw < $r->{testwordcnt}; $itw++) {
-      my $extrauserword = splitword($userwords[$iuw], $testwords[$itw]);
-      $iuw++;
+   for (my $itw = 0; $itw < scalar(@testwords); $itw++) {
+      last unless defined $userwords[$iuw];
 
-      if (scalar($extrauserword)) {
-         # insert extra word after the current one. The original userword will have been shortened
-         splice(@userwords, $iuw, 0, $extrauserword);
+      my (@newwords) = $userwords[$iuw]->split($testwords[$itw]->wordtext);
+      my $newcnt = scalar(@newwords);
+
+      if ($newcnt == 2) {
+         # replace original word with two new ones
+          splice(@userwords, $iuw, 1, @newwords);
       }
+
+      $iuw += $newcnt;
    }
 
    # re-align words in case user missed a whole word but then successfully resynced
    my $previoususerwordtext = '';
 
    for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
-      # get text of words
-      my $userwordtext = getwordtext($userwords[$iw]);
-      my $testwordtext = getwordtext($testwords[$iw]);
+      last unless defined $userwords[$iw];
+
+      my $userwordtext = $userwords[$iw]->wordtext;
+      my $testwordtext = $testwords[$iw]->wordtext;
 
       if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
          # insert notional empty user word with the same time as the start of the next user word
 
-         my $dummyspacetime = $userwords[$iw]->[0]->{t};
-         my $dummyspacerec = {ch => ' ', t => $dummyspacetime};
-         my $dummyword = [$dummyspacerec]; # reference to an array containing one element
+         my $dummyword = Word->createwordfromchar('');
+         my $dummyspacetime = $userwords[$iw]->{starttime};
+         $dummyword->append(' ', $dummyspacetime);
 
          splice(@userwords, $iw - 1, 0, $dummyword);
          $userwordtext = $previoususerwordtext;
@@ -571,36 +523,19 @@ sub marktest {
       $previoususerwordtext = $userwordtext;
    }
 
+   # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
+
    for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
+      last unless defined $userwords[$iw];
+
       # re-align characters in words in case some missed
-      alignchars($userwords[$iw], $testwords[$iw]);
+      $userwords[$iw]->align($testwords[$iw]->wordtext);
 
       # analyse word characters
       markword($userwords[$iw], $testwords[$iw], $r);
    }
 
    return $r;
-}
-
-sub splitword {
-   my $userinputref = shift;
-   my $teststatsref = shift;
-
-   return unless (defined $userinputref); # in case less user words than test words
-
-   my $userlen = scalar(@$userinputref);
-   my $testlen = scalar(@$teststatsref);
-   my @userinput2;
-
-   if ($userlen > $testlen + 1) {
-      @userinput2 = splice(@$userinputref, $testlen - 1); # split the word to match the length of the target excluding its final space
-      my $extrauserspacetime = $userinput2[0]->{t}; # the notional time at which the extra space is deemed to have been entered
-      push(@$userinputref, {ch=>' ', t=>$extrauserspacetime}); # re-terminate first word
-   }
-
-   if (@userinput2) {
-      return \@userinput2;
-   } # else implicitly return undef
 }
 
 sub playText {
