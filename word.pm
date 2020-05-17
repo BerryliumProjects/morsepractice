@@ -3,6 +3,7 @@ package Word;
 use strict;
 use warnings;
 use Data::Dumper;
+use Time::HiRes qw(time usleep);
 
 # constructor: create a new word from a single printable character, if supplied
 sub createfromchar {
