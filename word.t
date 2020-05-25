@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>29;
+use Test::Simple tests=>30;
 use word;
 use Data::Dumper;
 
@@ -22,7 +22,11 @@ ok($w1->wordtext eq 'abb', 'nonspace is not debounced');
 
 $w1->undo;
 ok($w1->wordtext eq 'ab', 'Undo partial word');
-
+$w1->undo;
+$w1->undo;
+ok(($w1->{starttime} == 0 and $w1->{endtime} == 0), 'Undo single letter word');
+$w1->append('a');
+$w1->append('b');
 $w1->append(' '); # defaulted time
 @chdata = $w1->chardata(2);
 ok($chdata[1] > 0, 'defaulted date');

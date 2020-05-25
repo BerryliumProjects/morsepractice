@@ -74,7 +74,13 @@ sub undo {
    
    if (not $self->{complete}) {
       pop (@{$self->{charstats}});
-      $self->{endtime} = $self->{charstats}->[-1]->{t}; # new last element
+
+      if (scalar(@{$self->{charstats}}) > 0) {
+         $self->{endtime} = $self->{charstats}->[-1]->{t}; # new last element
+      } else {
+         $self->{starttime} = 0;
+         $self->{endtime} = 0;
+      }
    }      
 }
 
