@@ -5,12 +5,19 @@ use warnings;
 use Data::Dumper;
 use Time::HiRes qw(time usleep);
 
-# constructor: create a new word from a single printable character, if supplied
-sub createfromchar {
+# constructor: create empty word
+sub new {
    my $class = shift;
-   my $ch = shift; # optional
    my $self = {charstats => [], complete => undef, starttime => 0, endtime => 0};
    bless($self, $class);
+   return $self;
+}
+
+# constructor: create a new word from a single printable character
+sub createfromchar {
+   my $class = shift;
+   my $ch = shift;
+   my $self = $class->new;
 
    if (defined($ch) and length($ch) == 1 and $ch ne "\b" and $ch ne ' ') {
       $self->append($ch);
@@ -30,7 +37,7 @@ sub append {
       $ch = lc($ch);
       $ch =~ s/\r/ /; # newline should behave like space as word terminator
       
-      $thischtime = time() unless (defined $thischtime and $thischtime > 0);
+      $thischtime = time() unless defined $thischtime;
       push(@{$self->{charstats}}, {ch => $ch, t => $thischtime, pcnt => $pulsecount});
       $self->{starttime} = $thischtime unless $self->{starttime} > 0;
 
@@ -43,6 +50,23 @@ sub append {
       return $self->{complete};
    }
 }
+
+# constructor: create a placeholder of underscores and no timings
+sub createdummy {
+   my $class = shift;
+   my $length = shift;
+
+   my $self = $class->new;
+
+   for (1 .. $length) {
+      $self->append('_', 0);
+   }
+
+   $self->append(' ', 0);
+   return $self;
+}
+
+
 
 # remove the most recently added element from an incomplete word
 sub undo {
@@ -109,7 +133,7 @@ sub chardata {
 sub createfromfile {
    my $class = shift;
    my $handle = shift;
-   my $self = $class->createfromchar; # empty word
+   my $self = $class->new; # empty word
 
    until (eof($handle) or $self->{complete}) {
       my $teststatsitem = <$handle>;
@@ -161,8 +185,8 @@ sub split {
 
    # assume 1 extra character is a mistake, but more than that is due to a missed space
    if ($userlen > $testlen + 1) {
-      my $newword1 = Word->createfromchar;
-      my $newword2 = Word->createfromchar;
+      my $newword1 = Word->new;
+      my $newword2 = Word->new;
 
       for my $index1 (0 .. $testlen - 1) {
          $newword1->append($self->chardata($index1));

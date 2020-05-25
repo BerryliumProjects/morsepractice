@@ -1,10 +1,10 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>27;
+use Test::Simple tests=>29;
 use word;
 use Data::Dumper;
 
-$w1 = Word->createfromchar(''); # empty word
+$w1 = Word->new; # empty word
 
 ok(defined $w1, 'Empty word created');
 ok(! $w1->{complete}, 'Empty word is incomplete');
@@ -103,3 +103,8 @@ ok(($w4->chardata(4))[1] == 1.27, 'terminated word imported from file');
 # print Dumper \$w4;
 
 unlink($tmpfile);
+
+$w4 = Word->createdummy(3);
+ok($w4->wordtext eq '___', 'Dummy word is underscores');
+ok($w4->{endtime} == 0, 'Dummy word time is zero');
+

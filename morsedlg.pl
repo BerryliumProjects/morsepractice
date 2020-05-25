@@ -168,7 +168,7 @@ sub startAuto {
    $userabort = 0;
    Word->debounce('');
    @userwords = ();
-   $userwordinput = Word->createfromchar;
+   $userwordinput = Word->new;
    $testwordcnt = 0;
 
    print MP "= \n";
@@ -255,7 +255,7 @@ sub checkwordchar {
          }
 
          push(@userwords, $userwordinput);
-         $userwordinput = Word->createfromchar;
+         $userwordinput = Word->new;
       }
    }
 }
@@ -409,29 +409,30 @@ sub markword {
    }
 
    my ($userspace, $userspacetime) = $userinputref->chardata($testwordlength);
-   my ($testspace, $endspacetime, $testspacepulsecnt) = $teststatsref->chardata($testwordlength);
 
    # measure reaction from when next character would have been expected
-   $endspacetime = $teststatsref->{endtime};
+   my $endspacetime = $teststatsref->{endtime};
 
    my $spacereaction = $userspacetime - $endspacetime;
-   showcharstats(' ', ' ', $spacereaction, $userspacetime, $testspacepulsecnt);
+   showcharstats(' ', ' ', $spacereaction, $userspacetime, 4);
 
-   $r->{pulsecount} += $testspacepulsecnt; # for whole session
+   $r->{pulsecount} += 4; # for whole session
 
-   if ($e->{measurecharreactions}) {
-      $r->{reactionsbychar}->add('>', $spacereaction);
-   }
+   if ($userspacetime > 0) {
+      if ($e->{measurecharreactions}) {
+         $r->{reactionsbychar}->add('>', $spacereaction);
+      }
 
-   # also record reaction/histogram by position in word (key:tab-n)
-   $r->{reactionsbypos}->add(-1, $spacereaction);
+      # also record reaction/histogram by position in word (key:tab-n)
+      $r->{reactionsbypos}->add(-1, $spacereaction);
 
-   # if in word recognition mode, note reaction time to start entering word
-   # the end of the word can be detected as soon as the next expected element is absent
-   if (not $e->{measurecharreactions}) {
-      my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
-      $r->{reactionsbypos}->add(-2, $wordreaction);
-      showcharstats('', '', $wordreaction);
+      # if in word recognition mode, note reaction time to start entering word
+      # the end of the word can be detected as soon as the next expected element is absent
+      if (not $e->{measurecharreactions}) {
+         my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
+         $r->{reactionsbypos}->add(-2, $wordreaction);
+         showcharstats('', '', $wordreaction);
+      }
    }
 
    if ($markuserword eq $marktestword) {
@@ -510,13 +511,8 @@ sub marktest {
       my $testwordtext = $testwords[$iw]->wordtext;
 
       if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
-         # insert notional empty user word with the same time as the start of the next user word
-
-         my $dummyword = Word->createwordfromchar('');
-         my $dummyspacetime = $userwords[$iw]->{starttime};
-         $dummyword->append(' ', $dummyspacetime);
-
-         splice(@userwords, $iw - 1, 0, $dummyword);
+         # insert dummy user word with zero times - no reactions will be processed
+         splice(@userwords, $iw - 1, 0, Word->createdummy(length($testwordtext)));
          $userwordtext = $previoususerwordtext;
       }
 
