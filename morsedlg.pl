@@ -208,9 +208,9 @@ sub checkchar {
 
    if ($ch ne '') { # ignore empty characters (e.g. pressing shift)
       if ($e->{maxwordlength} == 1 and $e->{syncafterword}) {
-         checksinglechar($ch);
+         checkword(Word->createfromchar($ch));
       } else {
-         checkwordchar($ch);
+         buildword($ch);
       }
    }
 
@@ -219,68 +219,51 @@ sub checkchar {
    }
 }
 
-sub checkwordchar {
+sub buildword {
    my $ch = shift;
 
    if ($ch eq "\b") {
       if ($e->{allowbackspace}) {
-         # discard final character and stats 
+         # discard final character and stats
          $userwordinput->undo;
       }
    } else {
       $userwordinput->append($ch);
 
       if ($userwordinput->{complete}) {
-         if ($e->{syncafterword}) { 
-            syncflush();
-
-            if (($e->{practicetime} * 60) < (time() - $starttime)) {
-               $abortpendingtime = time(); 
-            } else {
-               my $testword = $twg->{prevword};
-               my $userword = $userwordinput->wordtext;
-
-               if (($userword ne $testword) and $e->{retrymistakes}) {
-                  $d->insert('end', '# ');
-               } else {
-                  $testword = $twg->chooseWord;
-               }
-
-               print MP "$testword\n";
-            }
-         } else {
-            if (scalar(@userwords) + 1 >= $testwordcnt) {
-               $abortpendingtime = time();
-            } 
-         }
-
-         push(@userwords, $userwordinput);
+         checkword($userwordinput);
          $userwordinput = Word->new;
       }
    }
 }
 
-sub checksinglechar {
-   my $ch = shift;
+sub checkword {
+   my $userwordinput = shift;
 
-   my $userwordinput = Word->createfromchar($ch);
+   if ($e->{syncafterword}) {
+      syncflush();
+
+      if (($e->{practicetime} * 60) < (time() - $starttime)) {
+         $abortpendingtime = time();
+      } else {
+         my $testword = $twg->{prevword};
+         my $userword = $userwordinput->wordtext;
+
+         if (($userword ne $testword) and $e->{retrymistakes}) {
+            $d->insert('end', '# ');
+         } else {
+            $testword = $twg->chooseWord;
+         }
+
+         print MP "$testword\n";
+      }
+   } else {
+      if (scalar(@userwords) + 1 >= $testwordcnt) {
+         $abortpendingtime = time();
+      }
+   }
 
    push(@userwords, $userwordinput);
-   syncflush();
-
-   if ($e->{practicetime} * 60 < time() - $starttime) {
-      $abortpendingtime = time(); 
-   } else {
-      my $testword = $twg->{prevword};
-
-      if (($userwordinput->wordtext ne $testword) and $e->{retrymistakes}) {
-         $d->insert('end', '# '); # repeat previous word
-      } else {
-         $testword = $twg->chooseWord;
-      }
-
-      print MP "$testword\n";
-   }
 }
 
 sub addtestweight {
