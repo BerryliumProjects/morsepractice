@@ -210,4 +210,70 @@ sub split {
    } # else implicitly return undef
 }
 
+
+sub report {
+   # show test word statistics on the terminal, together with any corresponding user entry, reaction and typing rate times
+   my $self = shift; # test word
+   my $userword = shift;
+   my @report;
+
+   my $marktestword = $self->wordtext;
+   my $testwordlength = length($marktestword);
+
+   if (defined $userword and length($userword->wordtext) < $testwordlength) {
+      return "ERROR: user word is too short\n";
+   }
+
+   if (defined $userword) {
+      my $prevusertime;
+      my $typingtimems;
+      my $reactionms;
+
+      for (my $i = 0; $i < $testwordlength; $i++) {
+         my ($userchar, $usertime) = $userword->chardata($i);
+         my ($testchar, $endchartime, $testpulsecnt) = $self->chardata($i);
+
+         $reactionms = '';
+         $typingtimems = '';
+
+         if ($usertime > $endchartime and $userchar ne '_') {
+            $reactionms = int(($usertime - $endchartime) * 1000 + 0.5);
+         }
+
+         if (defined $prevusertime and $userchar ne '_') {
+            $typingtimems = int(($usertime - $prevusertime) * 1000 + 0.5);
+         }
+
+         push(@report, sprintf("%1s%5s%2s%5s%5s\n", $testchar, $testpulsecnt, $userchar, $reactionms, $typingtimems));
+
+         # typing time is since previous real keypress, ignoring placeholders
+         if ($userchar ne '_') {
+            $prevusertime = $usertime;
+         }
+      }
+
+      # measure end of word reaction from when next character would have been expected
+      my ($userspace, $userspacetime) = $userword->chardata($testwordlength);
+      my $endspacetime = $self->{endtime};
+      $reactionms = int(($userspacetime - $endspacetime) * 1000 + 0.5);
+
+      if (defined $prevusertime) {
+         $typingtimems = int(($userspacetime - $prevusertime) * 1000 + 0.5);
+      }
+
+      push(@report, sprintf( "%6s%7s%5s\n", 4, $reactionms, $typingtimems));
+
+      # in word recognition mode, note reaction time to start entering word
+      # the end of the word can be detected as soon as the next expected element is absent
+      my $wordreactionms = int(($userword->{starttime} - $self->{endtime}) * 1000 + 0.5);
+      push(@report, sprintf("Word:%8s\n", $wordreactionms));
+   } else { # no matching user word - just show test word stats
+      for (my $i = 0; $i < $testwordlength; $i++) {
+         push(@report, sprintf("%1s%5s\n", $self->{charstats}->[$i]->{ch}, $self->{charstats}->[$i]->{pcnt}));
+      }
+   }
+
+   return @report;
+}
+
 1;

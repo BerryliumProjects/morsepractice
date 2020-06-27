@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>30;
+use Test::Simple tests=>38;
 use word;
 use Data::Dumper;
 
@@ -112,3 +112,22 @@ $w4 = Word->createdummy(3);
 ok($w4->wordtext eq '___', 'Dummy word is underscores');
 ok($w4->{endtime} == 0, 'Dummy word time is zero');
 
+$w5 = Word->new;
+
+$w5->append('a',1.2366); # user word as an attempt to read $w3
+$w5->append('x',1.24); # bad anticipation
+$w5->append('_',1.8); # missed letter, time defaulted to next match
+$w5->append('d',1.8);
+$w5->append(' ',2.00);
+
+@rep1 = $w3->report($w5);
+print @rep1;
+ok ($rep1[0] eq "a    5 a    7     \n", 'First char in word reported without typing time');
+ok ($rep1[1] eq "b   10 x         3\n", 'Anticipated second char in word reported without reaction');
+ok ($rep1[2] eq "c    3 _          \n", 'Placeholder reported without timings');
+ok ($rep1[3] eq "d    4 d  540  560\n", 'Typing time ignores placeholder');
+ok ($rep1[4] eq "     4    740  200\n",  'Space has correct pulsecount and timings');
+ok ($rep1[5] eq "Word:     -22\n", 'Word reaction aligned correctly');
+
+ok (substr(($w3->report($w4))[0], 0, 5) eq 'ERROR', 'short user word aborted');
+ok (length(($w3->report)[0]) == 7, 'No user fields reported if undefined word');

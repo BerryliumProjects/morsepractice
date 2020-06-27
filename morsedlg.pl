@@ -288,51 +288,6 @@ sub addtestweight {
    }
 }
 
-my $prevusertime = undef; # used by showcharstats
-
-sub showcharstats {
-   # show character statistics on the terminal
-   my $userchar = shift;
-   my $testchar = shift;
-   my $reaction = shift;
-   my $usertime = shift;
-   my $testpulsecnt = shift;
-
-   my $typingtimems = '';
-   my $reactionms = '';
-
-   if ($userchar ne '') {
-      if ($userchar ne '_') {
-         $reactionms = int($reaction * 1000 + 0.5);
-
-         if ($reactionms <= 0) {
-            $reactionms = ''; # don't show misleading results
-         }
-
-         if (defined $prevusertime) {
-            $typingtimems = int(($usertime - $prevusertime) * 1000);
-
-            if ($typingtimems <= 0) {
-               $typingtimems = '' # don't show misleading values
-            }
-         }
-      }
-
-      my $testchardurationms = int($testpulsecnt * 1.2 / $e->{wpm} * 1000 + 0.5);
-      # treat reactionms and typingtimems as strings as could be blank if n/a
-      printf "%1s%5s%2s%5s%5s\n", $testchar, $testchardurationms, $userchar, $reactionms, $typingtimems;
-
-      if ($testchar eq ' ') {
-         $prevusertime = undef; # prime for next word
-      } else {
-         $prevusertime = $usertime;
-      }
-   } else { 
-      $reactionms = int($reaction * 1000 + 0.5);
-      printf "Word:%4s\n", $reactionms;
-   }
-}
-
 sub markchar { 
    # find characters in error and mark reactions
    my $userchar = shift;
@@ -346,8 +301,6 @@ sub markchar {
    my $reaction = $usertime - $endchartime;
 
    addtestweight($userchar, $testchar, $reaction > $slowresponsethreshold);
-
-   showcharstats($userchar, $testchar, $reaction, $usertime, $testpulsecnt);
 
    $r->{pulsecount} += $testpulsecnt; # for whole session
    $r->{nonblankcharcount}++;
@@ -395,9 +348,7 @@ sub markword {
 
    # measure reaction from when next character would have been expected
    my $endspacetime = $teststatsref->{endtime};
-
    my $spacereaction = $userspacetime - $endspacetime;
-   showcharstats(' ', ' ', $spacereaction, $userspacetime, 4);
 
    $r->{pulsecount} += 4; # for whole session
 
@@ -414,7 +365,6 @@ sub markword {
       if (not $e->{measurecharreactions}) {
          my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
          $r->{reactionsbypos}->add(-2, $wordreaction);
-         showcharstats('', '', $wordreaction);
       }
    }
 
@@ -502,14 +452,24 @@ sub marktest {
       $previoususerwordtext = $userwordtext;
    }
 
-   # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
+   # re-align characters in words in case some missed
+   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
+      if (defined $userwords[$iw]) {
+         $userwords[$iw]->align($testwords[$iw]->wordtext);
+      }
+   }
+
+   # report detailed test performance for all words
+   print "\nReport fields: testchar, pulsecount, userchar, reaction(ms), typingtime(ms)\n\n";
 
    for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
+      print $testwords[$iw]->report($userwords[$iw]), "\n";
+
+   }
+
+   # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
+   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
       last unless defined $userwords[$iw];
-
-      # re-align characters in words in case some missed
-      $userwords[$iw]->align($testwords[$iw]->wordtext);
-
       # analyse word characters
       markword($userwords[$iw], $testwords[$iw], $r);
    }
