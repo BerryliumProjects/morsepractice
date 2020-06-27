@@ -22,7 +22,6 @@ use resultsdialog;
 use word;
 
 # constants
-my $slowresponsethreshold = 1; # seconds
 my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
 my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
 my $mp2readyfile = '/var/tmp/mp2ready.txt';
@@ -266,28 +265,6 @@ sub checkword {
    push(@userwords, $userwordinput);
 }
 
-sub addtestweight {
-   # add extra weight to poorly received characters, for the next practice session
-   my $userchar = shift;
-   my $testchar = shift;
-   my $slowreaction = shift;
-
-   if ($testchar ne ' ') {
-      if ($userchar eq '_') {
-         # increase frequency of missed characters for later
-         $autoextraweights .= $testchar . $testchar;
-      } elsif ($userchar ne $testchar) {
-         # increase frequency of confused characters for later
-         # any invalid characters will be played as = 
-         $autoextraweights .= $userchar . $testchar . $testchar;
-
-         if ($slowreaction) {
-            $autoextraweights .= $testchar;
-         }
-      }
-   }
-}
-
 sub markchar { 
    # find characters in error and mark reactions
    my $userchar = shift;
@@ -300,17 +277,17 @@ sub markchar {
 
    my $reaction = $usertime - $endchartime;
 
-   addtestweight($userchar, $testchar, $reaction > $slowresponsethreshold);
-
    $r->{pulsecount} += $testpulsecnt; # for whole session
    $r->{nonblankcharcount}++;
  
    if ($userchar eq '_') { # missed char
       $r->{missedchars}->add($testchar, 1);
       $r->{successbypos}->add($i, 0);
-   } elsif ($userchar ne $testchar) {
+      $r->{focuschars} .= $testchar . $testchar;
+   } elsif ($userchar ne $testchar) { # mistaken char
       $r->{mistakenchars}->add($testchar, 1);
       $r->{successbypos}->add($i, 0);
+      $r->{focuschars} .= $userchar . $testchar . $testchar;
    } else { 
       $r->{successbypos}->add($i, 1);
    }
@@ -370,9 +347,6 @@ sub markword {
 
    if ($markuserword eq $marktestword) {
       $r->{successes}++;
-      $d->insert('end', "$marktestword ");
-   } else {
-      $d->insert('end', "$markuserword # [$marktestword] "); 
    }
 }
 
@@ -408,6 +382,9 @@ sub marktest {
    $r->{successes} = 0;
    $r->{pulsecount} = 0;
    $r->{nonblankcharcount} = 0;
+   $r->{testwordtext} = [];
+   $r->{markedwords} = '';
+   $r->{focuschars} = '';
 
    $r->{reactionsbychar} = Histogram->new;
    $r->{reactionsbypos} = Histogram->new;
@@ -417,13 +394,19 @@ sub marktest {
 
    return if ($r->{testwordcnt} == 0); # possible if aborted early
 
+   my @testwordix = (0 .. ($r->{testwordcnt} - 1)); # set of test word indexes
+
+   foreach (@testwordix) {
+      push(@{$r->{testwordtext}}, $testwords[$_]->wordtext);
+   }
+
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;
 
-   for (my $itw = 0; $itw < scalar(@testwords); $itw++) {
+   foreach (@testwordix) {
       last unless defined $userwords[$iuw];
 
-      my (@newwords) = $userwords[$iuw]->split($testwords[$itw]->wordtext);
+      my (@newwords) = $userwords[$iuw]->split($testwords[$_]->wordtext);
       my $newcnt = scalar(@newwords);
 
       if ($newcnt == 2) {
@@ -437,15 +420,15 @@ sub marktest {
    # re-align words in case user missed a whole word but then successfully resynced
    my $previoususerwordtext = '';
 
-   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
-      last unless defined $userwords[$iw];
+   foreach (@testwordix) {
+      last unless defined $userwords[$_];
 
-      my $userwordtext = $userwords[$iw]->wordtext;
-      my $testwordtext = $testwords[$iw]->wordtext;
+      my $userwordtext = $userwords[$_]->wordtext;
+      my $testwordtext = $testwords[$_]->wordtext;
 
       if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
          # insert dummy user word with zero times - no reactions will be processed
-         splice(@userwords, $iw - 1, 0, Word->createdummy(length($testwordtext)));
+         splice(@userwords, $_ - 1, 0, Word->createdummy(length($testwordtext)));
          $userwordtext = $previoususerwordtext;
       }
 
@@ -453,25 +436,41 @@ sub marktest {
    }
 
    # re-align characters in words in case some missed
-   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
-      if (defined $userwords[$iw]) {
-         $userwords[$iw]->align($testwords[$iw]->wordtext);
+   foreach (@testwordix) {
+      if (defined $userwords[$_]) {
+         $userwords[$_]->align($testwords[$_]->wordtext);
       }
    }
 
    # report detailed test performance for all words
    print "\nReport fields: testchar, pulsecount, userchar, reaction(ms), typingtime(ms)\n\n";
 
-   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
-      print $testwords[$iw]->report($userwords[$iw]), "\n";
+   foreach (@testwordix) {
+      print $testwords[$_]->report($userwords[$_]), "\n";
 
    }
 
    # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
-   for (my $iw = 0; $iw < $r->{testwordcnt}; $iw++) {
-      last unless defined $userwords[$iw];
+   foreach (@testwordix) {
+      last unless defined $userwords[$_];
       # analyse word characters
-      markword($userwords[$iw], $testwords[$iw], $r);
+      markword($userwords[$_], $testwords[$_], $r);
+   }
+
+   # summary of test with corrections shown
+   foreach (@testwordix) {
+      my $testwordtext = $testwords[$_]->wordtext;
+      my $userwordtext = '';
+
+      if (defined $userwords[$_]) {
+         $userwordtext = $userwords[$_]->wordtext;
+      }
+
+      $r->{markedwords} .= "$userwordtext ";
+
+      if ($userwordtext ne $testwordtext) {
+         $r->{markedwords} .= "# [$testwordtext] ";
+      }
    }
 
    return $r;
@@ -566,22 +565,13 @@ sub stopAuto {
       my $res = marktest();
 
       if (defined $res and $res->{nonblankcharcount} > 0) {
+         $d->Contents($res->{markedwords}); # show marked results
          ResultsDialog::show($res, $mdlg);
+         $d->Contents(join(' ', @{$res->{testwordtext}})); # show playable test words
+         $autoextraweights = $res->{focuschars};
       }
    }
 
-   my $text = $d->Contents;
-
-   # remove incorrect attempts after marking text
-   $text =~ s/[^\[\]\#\s]+ \# //g;
-
-   # sanitise remaining formatting characters used when marking test
-   $text =~ s/[\[\]\#\_]//g;
-   # collapse whitespace sequences to a single space
-   $text =~ s/\s+/ /g;
-
-   # enable test to be played
-   $d->Contents($text);
    $mdlg->setControlState('normal');
 
    if ($e->{dictsize} == 0) {
