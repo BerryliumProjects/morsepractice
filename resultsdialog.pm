@@ -7,7 +7,12 @@ sub show {
    my $e = $mdlg->{e};
    my $rw = $mdlg->{w}->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
    my $rwdf = DialogFields->init($rw);
-   populateresultswindow($rwdf);
+ 
+   if ($e->{measurecharreactions}) {
+      populateresultswindow1($rwdf);
+   } else {
+      populateresultswindow2($rwdf);
+   }
 
    # statistics used: 
    #   words:  testwordcnt, successes
@@ -36,62 +41,22 @@ sub show {
    my $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
    $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $stdcharpausetime * 100); # as percentage
 
-   # Report slowest average reaction times by character
-   my %avgreactionsbychar = %{$res->{reactionsbychar}->averages};
-   my @worstchars = sort {$avgreactionsbychar{$b} <=> $avgreactionsbychar{$a}} (keys %avgreactionsbychar);
-
-   my $worstcharsreport = '';
-
-   if (@worstchars) {
-      my $worstcount = 0;
-
-      foreach my $ch (@worstchars) {
-         $worstcharsreport .= sprintf ("\t%s\t%i ms\n", $ch, $avgreactionsbychar{$ch} * 1000 + 0.5);
-         last if ($worstcount++ > 4);
-      }
-   }
-
-   $rwdf->{controls}->{worstchars}->Contents($worstcharsreport);
-
-   # Report average reaction times by position in word
-   my %avgreactionsbypos = %{$res->{reactionsbypos}->averages};
-   my @worstcharpos = sort keys %avgreactionsbypos;
-
-   my $worstcharposreport = '';
+   $rwdf->{controls}->{markedwords}->Contents($res->{markedwords});
 
    if ($e->{measurecharreactions}) {
-      if (@worstcharpos) {
-         foreach my $pos (@worstcharpos) {
-            $worstcharposreport .= sprintf ("\t%s\t%i ms\n", $pos, $avgreactionsbypos{$pos} * 1000 + 0.5);
-         }
-      }
-   } else {
-      my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * 1.2 / $e->{wpm};
-      # reactions are from earliest opportunity to detect end of word, not from end of gap if extra spaces have been inserted
-      $worstcharposreport .= sprintf("Word start\t%i ms\n", $avgreactionsbypos{-2} * 1000 + 0.5);
-      $worstcharposreport .= sprintf("Word end  \t%i ms\n", $avgreactionsbypos{-1} * 1000 + 0.5);
-      $worstcharposreport .= sprintf("Space time\t%i ms\n", $wordspacetime * 1000 + 0.5);
+      $rwdf->{controls}->{worstchars}->Contents(worstcharsreport($res));
    }
 
-   $rwdf->{controls}->{worstcharpos}->Contents($worstcharposreport);
-
-   # Report success rate by position in word
-   my %avgsuccessbypos = %{$res->{successbypos}->averages};
-
-   my $positionsuccessreport = '';
-
-   foreach my $pos (sort keys %avgsuccessbypos) {
-      my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
-      $positionsuccessreport .= sprintf("\t%i\t%i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $res->{successbypos}->keytotal($pos), $res->{successbypos}->keycount($pos));
+   if (not $e->{measurecharreactions}) {
+      $rwdf->{controls}->{wordentrytimings}->Contents(wordentrytimings($res, $e));
    }
 
-   $rwdf->{controls}->{positionsuccesses}->Contents($positionsuccessreport);
+   $rwdf->{controls}->{positionstats}->Contents(positionstatsreport($res, $e));
+
    $rw->Show;
 }
 
-
-
-sub populateresultswindow {
+sub populateresultswindow1 { # for character timings
    my $rwdf = shift;
 
    $rwdf->addEntryField('Duration', 'duration', 30, undef, undef, undef, '');
@@ -104,11 +69,94 @@ sub populateresultswindow {
    $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
 
-   $rwdf->addWideTextField('Slowest reactions by character:', 'worstchars', 5, 35, '', undef, undef, '');
-   $rwdf->addWideTextField('Reactions by position:', 'worstcharpos', 10, 35, '', undef, undef, '');
-   $rwdf->addWideTextField('Success rate by position:', 'positionsuccesses', 10, 35, '', undef, undef, '');
+   $rwdf->addWideTextField('Marked test words', 'markedwords', 10, 60, '', undef, undef, '');
+   $rwdf->addWideTextField('Slowest reactions by character', 'worstchars', 5, 40, '', undef, undef, '');
+   $rwdf->addWideTextField('Reactions and success rate by position', 'positionstats', 11, 40, '', undef, undef, '');
+}
 
-#    $rwdf->addButtonField('OK', 'ok',  undef, sub{$rwdf->{w}->destroy}, '');
+sub populateresultswindow2 { # for whole word timings
+   my $rwdf = shift;
+
+   $rwdf->addEntryField('Duration', 'duration', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Word success rate', 'wordreport', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Character success rate', 'charreport', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Missed characters', 'missedchars', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Mistaken characters', 'mistakenchars', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Achieved paris wpm', 'pariswpm', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Achieved character wpm', 'charswpm', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
+
+   $rwdf->addWideTextField('Marked test words', 'markedwords', 10, 60, '', undef, undef, '');
+   $rwdf->addWideTextField('Word entry timings', 'wordentrytimings', 3, 40, '', undef, undef, '');
+   $rwdf->addWideTextField('Success rate by position', 'positionstats', 10, 40, '', undef, undef, '');
+}
+
+sub worstcharsreport {
+   my $res = shift;
+
+   # Report slowest average reaction times by character
+   my %avgreactionsbychar = %{$res->{reactionsbychar}->averages};
+   my @worstchars = sort {$avgreactionsbychar{$b} <=> $avgreactionsbychar{$a}} (keys %avgreactionsbychar);
+
+   my $worstcharsreport = '';
+
+   if (@worstchars) {
+      my $worstcount = 0;
+
+      foreach my $ch (@worstchars) {
+         $worstcharsreport .= sprintf ("%8s%8i ms\n", $ch, $avgreactionsbychar{$ch} * 1000 + 0.5);
+         last if ($worstcount++ > 4);
+      }
+   }
+
+   return $worstcharsreport;
+}
+
+sub wordentrytimings {
+   my $res = shift;
+   my $e = shift;
+
+   my $wordentrytimings = '';
+   my $wordspacetime = 4 * (1 + int($e->{extrawordspaces})) * 1.2 / $e->{wpm};
+   my %avgreactionsbypos = %{$res->{reactionsbypos}->averages};
+
+   # reactions are from earliest opportunity to detect end of word, not from end of gap if extra spaces have been inserted
+   $wordentrytimings .= sprintf("\t%10s%6i ms\n", 'Word start', $avgreactionsbypos{-2} * 1000 + 0.5);
+   $wordentrytimings .= sprintf("\t%10s%6i ms\n", 'Word end', $avgreactionsbypos{-1} * 1000 + 0.5);
+   $wordentrytimings .= sprintf("\t%10s%6i ms\n", 'Space time', $wordspacetime * 1000 + 0.5);
+
+   return $wordentrytimings;
+}
+
+sub positionstatsreport {
+   my $res = shift;
+   my $e = shift;
+
+   # Report success rate by position in word
+   my %avgsuccessbypos = %{$res->{successbypos}->averages};
+
+   my $positionstatsreport = '';
+
+   if ($e->{measurecharreactions}) { # show combined position success and reaction times report
+      my %avgreactionsbypos = %{$res->{reactionsbypos}->averages};
+
+      foreach my $pos (sort keys %avgsuccessbypos) {
+         my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
+         my $avgreactionbyposms = int($avgreactionsbypos{$pos} * 1000 + 0.5);
+         $positionstatsreport .= sprintf("%8s%8i ms %6i%% (%i / %i)\n", $pos, $avgreactionbyposms, $avgsuccessbypospc, $res->{successbypos}->keytotal($pos), $res->{successbypos}->keycount($pos));
+      }
+
+      # space reactions - no success stats
+      $positionstatsreport .= sprintf ("%8s%8i ms\n", '>', $avgreactionsbypos{-1} * 1000 + 0.5);
+   } else { # only show success stats, not timings
+      foreach my $pos (sort keys %avgsuccessbypos) {
+         my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
+         $positionstatsreport .= sprintf("%8s%8i%% (%i / %i)\n", $pos, $avgsuccessbypospc, $res->{successbypos}->keytotal($pos), $res->{successbypos}->keycount($pos));
+      }
+   }
+
+   return $positionstatsreport;
 }
 
 1;

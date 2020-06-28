@@ -565,7 +565,6 @@ sub stopAuto {
       my $res = marktest();
 
       if (defined $res and $res->{nonblankcharcount} > 0) {
-         $d->Contents($res->{markedwords}); # show marked results
          ResultsDialog::show($res, $mdlg);
          $d->Contents(join(' ', @{$res->{testwordtext}})); # show playable test words
          $autoextraweights = $res->{focuschars};
