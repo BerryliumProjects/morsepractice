@@ -422,21 +422,24 @@ sub marktest {
    }
 
    # re-align words in case user missed a whole word but then successfully resynced
-   my $previoususerwordtext = '';
+   if ($e->{repeatcnt} == 0) {
+      # only use if not repeating test words, which can cause mis-alignment
+      my $previoususerwordtext = '';
 
-   foreach (@testwordix) {
-      last unless defined $userwords[$_];
+      foreach (@testwordix) {
+         last unless defined $userwords[$_];
 
-      my $userwordtext = $userwords[$_]->wordtext;
-      my $testwordtext = $testwords[$_]->wordtext;
+         my $userwordtext = $userwords[$_]->wordtext;
+         my $testwordtext = $testwords[$_]->wordtext;
 
-      if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
-         # insert dummy user word with zero times - no reactions will be processed
-         splice(@userwords, $_ - 1, 0, Word->createdummy(length($testwordtext)));
-         $userwordtext = $previoususerwordtext;
+         if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
+            # insert dummy user word with zero times - no reactions will be processed
+            splice(@userwords, $_ - 1, 0, Word->createdummy(length($testwordtext)));
+            $userwordtext = $previoususerwordtext;
+         }
+
+         $previoususerwordtext = $userwordtext;
       }
-
-      $previoususerwordtext = $userwordtext;
    }
 
    # re-align characters in words in case some missed
