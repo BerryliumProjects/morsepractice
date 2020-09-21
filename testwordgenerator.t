@@ -1,6 +1,6 @@
 #! /usr/bin/perl
 
-use Test::Simple tests=>11;
+use Test::Simple tests=>12;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -61,4 +61,9 @@ ok ($w->chooseWord ne '', 'second word chosen');
 
 print Dumper $w;
 
+$w = TestWordGenerator->new(2,3);
 
+$w->addPhonemes();
+ok ($w->{size} > 5, '>5 phonemes added');
+
+print Dumper $w;

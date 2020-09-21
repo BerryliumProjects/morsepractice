@@ -67,6 +67,27 @@ sub addRandom {
    }
 }
 
+
+sub addPhonemes {
+   # add all selected phonemes, as there aren't many
+   my $self = shift;
+
+   if (open(PL, 'phonemelist.txt')) {
+      while (defined(my $word = <PL>)) {
+         # trim space
+         chomp $word;
+         $word =~ s/\s//g;
+
+         if (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength}) {
+            $self->addWord($word);
+         }
+      }
+   }
+
+   close(WL);
+}
+
+
 sub addPseudo {
    my $self = shift;
    my $count = shift;
