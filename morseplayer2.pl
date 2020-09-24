@@ -62,7 +62,7 @@ if (defined $ARGV[4] and $ARGV[4] > 1) {
    $dashweight = $ARGV[4];
 }
 
-if (defined $ARGV[5] and $ARGV[5] > 1) {
+if (defined $ARGV[5] and $ARGV[5] > 0) {
    $extrawordspaces = $ARGV[5];
 }
 
