@@ -269,45 +269,6 @@ sub checkword {
    push(@userwords, $userwordinput);
 }
 
-sub markchar { 
-   # find characters in error and mark reactions
-   my $userchar = shift;
-   my $usertime = shift;
-   my $testchar = shift;
-   my $endchartime = shift;
-   my $testpulsecnt = shift;
-   my $i = shift;
-   my $r = shift;
-
-   my $reaction = $usertime - $endchartime;
-
-   $r->{pulsecount} += $testpulsecnt; # for whole session
-   $r->{nonblankcharcount}++;
- 
-   if ($userchar eq '_') { # missed char
-      $r->{missedchars}->add($testchar, 1);
-      $r->{successbypos}->add($i, 0);
-      $r->{focuschars} .= $testchar . $testchar;
-   } elsif ($userchar ne $testchar) { # mistaken char
-      $r->{mistakenchars}->add($testchar, 1);
-      $r->{successbypos}->add($i, 0);
-      $r->{focuschars} .= $userchar . $testchar . $testchar;
-   } else { 
-      $r->{successbypos}->add($i, 1);
-   }
-
-   if ($reaction < $minimumreaction and $userchar eq '_') {
-      $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
-   }
-
-   my $histcharindex = $testchar;
-   my $histposindex = $i;
-
-   if ($e->{measurecharreactions}) {
-      $r->{reactionsbychar}->add($testchar, $reaction);
-      $r->{reactionsbypos}->add($i, $reaction);
-   }
-}
 
 sub markword { 
    # find characters in error and mark reactions
@@ -317,12 +278,45 @@ sub markword {
 
    my $markuserword = $userinputref->wordtext;
    my $marktestword = $teststatsref->wordtext;
- 
+
+   if ($markuserword eq $marktestword) {
+      $r->{successes}++;
+   }
+
    my $testwordlength = length($marktestword);
+   my $prevtestchar = '';
+
    for (my $i = 0; $i < $testwordlength; $i++) {
       my ($userchar, $usertime) = $userinputref->chardata($i);
       my ($testchar, $endchartime, $testpulsecnt) = $teststatsref->chardata($i);
-      markchar($userchar, $usertime, $testchar, $endchartime, $testpulsecnt, $i, $r);
+
+      $r->{pulsecount} += $testpulsecnt; # for whole session
+      $r->{nonblankcharcount}++;
+
+      if ($userchar eq '_') { # missed char
+         $r->{missedchars}->add($testchar, 1);
+         $r->{successbypos}->add($i, 0);
+         $r->{focuschars} .= $prevtestchar . $testchar; # include the previous character which may have stumbled
+      } elsif ($userchar ne $testchar) { # mistaken char
+         $r->{mistakenchars}->add($testchar, 1);
+         $r->{successbypos}->add($i, 0);
+         $r->{focuschars} .= $userchar . $testchar . $testchar;
+      } else {
+         $r->{successbypos}->add($i, 1);
+      }
+
+      $prevtestchar = $testchar;
+
+      my $reaction = $usertime - $endchartime;
+
+      if ($reaction < $minimumreaction and $userchar eq '_') {
+         $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
+      }
+
+      if ($e->{measurecharreactions}) {
+         $r->{reactionsbychar}->add($testchar, $reaction);
+         $r->{reactionsbypos}->add($i, $reaction);
+      }
    }
 
    my ($userspace, $userspacetime) = $userinputref->chardata($testwordlength);
@@ -347,10 +341,6 @@ sub markword {
          my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
          $r->{reactionsbypos}->add(-2, $wordreaction);
       }
-   }
-
-   if ($markuserword eq $marktestword) {
-      $r->{successes}++;
    }
 }
 
