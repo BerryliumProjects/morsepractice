@@ -161,7 +161,7 @@ sub startAuto {
    validateSettings();
    prepareTest();
 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces})) or die; 
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation})) or die; 
    autoflush MP, 1;
 
    $d->Contents('');
@@ -476,7 +476,7 @@ sub marktest {
 sub playText {
    my $ptext = shift;
 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, '-t')) or die; 
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, '-t')) or die; 
    autoflush MP, 1;
 
    print MP "=   $ptext\n#\n";
@@ -525,14 +525,14 @@ sub generateText {
 sub calibrate {
    # Play a standard tune-up message at "A" pitch and 20 wpm
 
-   open(MP, "|  perl $morseplayer " . join(' ', 20, 20, 440, $e->{playratefactor}, 3, 0)) or die; 
+   open(MP, "|  perl $morseplayer " . join(' ', 20, 20, 440, $e->{playratefactor}, 3, 0, 10)) or die; 
    autoflush MP, 1;
 
    print MP "000 cq cq\n#\n";
    close(MP);
 
    # now play a standard message at the selected pitch and wpm 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces})) or die;
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation})) or die;
 
    autoflush MP, 1;
 

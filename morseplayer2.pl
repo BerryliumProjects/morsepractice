@@ -27,6 +27,7 @@ my $text = 0; # 1 = treat newlines as interword spaces
 my $ratecorrection = 1.0;
 my $dashweight = 3.0;
 my $extrawordspaces = 0;
+my $attenuation = 10;
 my $abortpending = 0;
 
 my $bufferinglimit = 3; # seconds
@@ -38,7 +39,7 @@ local $SIG{'TERM'} = sub {$abortpending = 1};
 if (defined $ARGV[0] and $ARGV[0] > 1) {
    $wpm = $ARGV[0];
 } else {
-   print "Usage: perl morseplayer2.pl wpm [effectivewpm] [tonefrequency] [ratecorrection] [dashweight] [extrawordspaces] [switches]\n";
+   print "Usage: perl morseplayer2.pl wpm [effectivewpm] [tonefrequency] [ratecorrection] [dashweight] [extrawordspaces] [attenuation] [switches]\n";
    print "Switches: -t = text (newlines split words); -l = literal (.- are elements not characters)\n";
    print "To finish playing, enter #\n";
    exit 1;
@@ -66,12 +67,16 @@ if (defined $ARGV[5] and $ARGV[5] > 0) {
    $extrawordspaces = $ARGV[5];
 }
 
-if (defined $ARGV[6] and $ARGV[6] eq '-l') {
+if (defined $ARGV[6] and $ARGV[6] >= 0) {
+   $attenuation = $ARGV[6];
+} 
+
+if (defined $ARGV[7] and $ARGV[7] eq '-l') {
    $literal = 1; # intepret - . and blank as dah/dit/intercharacter spacing 
 } 
 
-if (defined $ARGV[6] and $ARGV[6] eq '-t') {
-   $text = 1; # intepret - . and blank as dah/dit/intercharacter spacing 
+if (defined $ARGV[7] and $ARGV[7] eq '-t') {
+   $text = 1; # treat newlines as interword spaces
 } 
 
 # adjust inter-word space length
@@ -100,11 +105,13 @@ $risecnt = $risetime * $bitrate;
 $extrachar = 60 / 6 * (1.0 / $effwpm - 1.0 / $wpm);
 $extrachar = 0 unless $extrachar > 0;
 
-printf "WPM=%i, Effective WPM=%i, pulse=%ims, risetime=%ims\n", $wpm, $effwpm, $pulse*1000, $risetime*1000;
+my $amplitude = 0.5 * 0.1 ** ($attenuation/20);
+
+printf "WPM=%i, Effective WPM=%i, pulse=%ims, risetime=%ims, amplitude=%5.3f\n", $wpm, $effwpm, $pulse*1000, $risetime*1000, $amplitude;
 
 $dotbeep = Audio::Data->new(rate=>$bitrate);
 $dotduration = $pulse + $risetime; # time start/stop from "half amplitude" points
-$dotbeep->tone($tonefreq * $ratecorrection, $dotduration / $ratecorrection, 0.5);
+$dotbeep->tone($tonefreq * $ratecorrection, $dotduration / $ratecorrection, $amplitude);
 
 @dotbeepdata = $dotbeep->data;
 $dotsamples = scalar(@dotbeepdata);
@@ -118,7 +125,7 @@ $dotbeep->data(@dotbeepdata);
 
 $dashbeep = Audio::Data->new(rate=>$bitrate);
 $dashduration = $dashweight * $pulse + $risetime;
-$dashbeep->tone($tonefreq * $ratecorrection, $dashduration / $ratecorrection, 0.5);
+$dashbeep->tone($tonefreq * $ratecorrection, $dashduration / $ratecorrection, $amplitude);
 
 @dashbeepdata = $dashbeep->data;
 $dashsamples = scalar(@dashbeepdata);
