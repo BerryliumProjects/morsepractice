@@ -43,7 +43,7 @@ sub init {
    $mwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
    $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
    $mwdf->addEntryField('Tone volume attenuation (dB)', 'attenuation', 40, '10');
-
+   $mwdf->addEntryField('Dash-dot pitch shift (semitones)', 'pitchshift', 40, '0');
    $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
    $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);

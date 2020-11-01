@@ -21,13 +21,14 @@ open(PIDFILE, "> $mp2pidfile"); print PIDFILE $$; close(PIDFILE);
 my $verbose = 0; # show ./- 
 my $wpm;
 my $effwpm;
-my $tonefreq = 800;
+my $tonefreq = 800; # base
 my $literal = 0; # 1 = treat .- and space as elements not characters
 my $text = 0; # 1 = treat newlines as interword spaces
 my $ratecorrection = 1.0;
 my $dashweight = 3.0;
 my $extrawordspaces = 0;
 my $attenuation = 10;
+my $pitchshift = 0; # dots and dashes are same pitch
 my $abortpending = 0;
 
 my $bufferinglimit = 3; # seconds
@@ -39,7 +40,7 @@ local $SIG{'TERM'} = sub {$abortpending = 1};
 if (defined $ARGV[0] and $ARGV[0] > 1) {
    $wpm = $ARGV[0];
 } else {
-   print "Usage: perl morseplayer2.pl wpm [effectivewpm] [tonefrequency] [ratecorrection] [dashweight] [extrawordspaces] [attenuation] [switches]\n";
+   print "Usage: perl morseplayer2.pl wpm [effectivewpm] [tonefrequency] [ratecorrection] [dashweight] [extrawordspaces] [attenuation] [pitchshift] [switches]\n";
    print "Switches: -t = text (newlines split words); -l = literal (.- are elements not characters)\n";
    print "To finish playing, enter #\n";
    exit 1;
@@ -71,11 +72,15 @@ if (defined $ARGV[6] and $ARGV[6] >= 0) {
    $attenuation = $ARGV[6];
 } 
 
-if (defined $ARGV[7] and $ARGV[7] eq '-l') {
+if (defined $ARGV[7] and $ARGV[7] > 0) {
+   $pitchshift = $ARGV[7]; # semitones above/below base
+} 
+
+if (defined $ARGV[8] and $ARGV[8] eq '-l') {
    $literal = 1; # intepret - . and blank as dah/dit/intercharacter spacing 
 } 
 
-if (defined $ARGV[7] and $ARGV[7] eq '-t') {
+if (defined $ARGV[8] and $ARGV[8] eq '-t') {
    $text = 1; # treat newlines as interword spaces
 } 
 
@@ -109,40 +114,10 @@ my $amplitude = 0.5 * 0.1 ** ($attenuation/20);
 
 printf "WPM=%i, Effective WPM=%i, pulse=%ims, risetime=%ims, amplitude=%5.3f\n", $wpm, $effwpm, $pulse*1000, $risetime*1000, $amplitude;
 
-$dotbeep = Audio::Data->new(rate=>$bitrate);
-$dotduration = $pulse + $risetime; # time start/stop from "half amplitude" points
-$dotbeep->tone($tonefreq * $ratecorrection, $dotduration / $ratecorrection, $amplitude);
+$freqshiftfactor = 2.0 ** ($pitchshift / 24);
 
-@dotbeepdata = $dotbeep->data;
-$dotsamples = scalar(@dotbeepdata);
-
-for ($i = 0; $i < $risecnt; $i++) {
-   $dotbeepdata[$i] *= ($i / $risecnt);
-   $dotbeepdata[$dotsamples-$i-1] *= ($i / $risecnt);
-}
-
-$dotbeep->data(@dotbeepdata);
-
-$dashbeep = Audio::Data->new(rate=>$bitrate);
-$dashduration = $dashweight * $pulse + $risetime;
-$dashbeep->tone($tonefreq * $ratecorrection, $dashduration / $ratecorrection, $amplitude);
-
-@dashbeepdata = $dashbeep->data;
-$dashsamples = scalar(@dashbeepdata);
-
-for ($i = 0; $i < $risecnt; $i++) {
-   $dashbeepdata[$i] *= ($i / $risecnt);
-   $dashbeepdata[$dashsamples-$i-1] *= ($i / $risecnt);
-}
-
-$dashbeep->data(@dashbeepdata);
-
-$dotsilence = Audio::Data->new(rate=>$bitrate);
-$dotsilenceduration = $pulse - $risetime;
-$dotsilence->silence($dotsilenceduration / $ratecorrection);
-
-my $wholedot = $dotbeep . $dotsilence;
-my $wholedash = $dashbeep . $dotsilence;
+$wholedot = CreateElement(1, $tonefreq * $freqshiftfactor);
+$wholedash = CreateElement($dashweight, $tonefreq / $freqshiftfactor);
 
 $charsilence = Audio::Data->new(rate=>$bitrate);
 $charsilence->silence($pulse * 2 / $ratecorrection);
@@ -155,14 +130,8 @@ $bufferclearsilence = Audio::Data->new(rate=>$bitrate);
 $bufferclearsilenceduration = 0.2;
 $bufferclearsilence->silence($bufferclearsilenceduration / $ratecorrection);
 
-# get actual durations allowing for any rounding
-my $wholedotduration = $wholedot->duration * $ratecorrection;
-my $wholedashduration = $wholedash->duration * $ratecorrection;
 my $charsilenceduration = $charsilence->duration * $ratecorrection;
 my $extracharsilenceduration = $extracharsilence->duration * $ratecorrection;
-
-printf("Sample durations: wholedot=%5.3f wholedash=%5.3f chargap=%5.3f, extrachargap=%5.3f\n",
-   $wholedotduration, $wholedashduration, $charsilenceduration, $extracharsilenceduration);
 
 my $prevblkline;
 
@@ -263,6 +232,33 @@ sleep 1; # before $svr destructor called
 # $svr->flush();
 exit 0;
 
+sub CreateElement {
+   my $beeppulses = shift;
+   my $freq = shift;
+
+   my $beep = Audio::Data->new(rate=>$bitrate);
+   my $duration = $beeppulses * $pulse + $risetime; # time start/stop from "half amplitude" points
+   $beep->tone($freq * $ratecorrection, $duration / $ratecorrection, $amplitude);
+
+   @beepdata = $beep->data;
+   $samples = scalar(@beepdata);
+
+   for ($i = 0; $i < $risecnt; $i++) {
+      $beepdata[$i] *= ($i / $risecnt);
+      $beepdata[$samples-$i-1] *= ($i / $risecnt);
+   }
+
+   $beep->data(@beepdata);
+
+   $silence = Audio::Data->new(rate=>$bitrate);
+   $silenceduration = $pulse - $risetime;
+   $silence->silence($silenceduration / $ratecorrection);
+
+   my $wholeelement = $beep . $silence;
+
+   return $wholeelement;
+}
+
 sub safeplay {
    my $svr= shift; # server
    my $au = shift; # audio
@@ -281,34 +277,34 @@ sub safeplay {
 }
 
 sub playdot {
-    print '.' if $verbose;
-    safeplay($svr, $wholedot);
-    $expectedplayendtime += $wholedotduration;
-    $pulses += 2;
+   print '.' if $verbose;
+   safeplay($svr, $wholedot);
+   $expectedplayendtime += ($wholedot->duration * $ratecorrection);
+   $pulses += 2;
 }
 
 sub playdash {
-    print '-' if $verbose;
-    safeplay($svr, $wholedash);
-    $expectedplayendtime += $wholedashduration;
-    $pulses += ($dashweight + 1);
+   print '-' if $verbose;
+   safeplay($svr, $wholedash);
+   $expectedplayendtime += ($wholedash->duration * $ratecorrection);
+   $pulses += ($dashweight + 1);
 }
 
 sub playspace {
-    print '_'  if $verbose;
-    safeplay($svr, $charsilence);
-    $expectedplayendtime += $charsilenceduration;
-    $pulses += 2;
+   print '_'  if $verbose;
+   safeplay($svr, $charsilence);
+   $expectedplayendtime += $charsilenceduration;
+   $pulses += 2;
 }
 
 sub playextraspace {
-    safeplay($svr, $extracharsilence);
-    $expectedplayendtime += $extracharsilenceduration;
+   safeplay($svr, $extracharsilence);
+   $expectedplayendtime += $extracharsilenceduration;
 }
 
 sub clearbuffer {
-    print '|'  if $verbose;
-    safeplay($svr, $bufferclearsilence);
-    $expectedplayendtime += $bufferclearsilenceduration;
+   print '|'  if $verbose;
+   safeplay($svr, $bufferclearsilence);
+   $expectedplayendtime += $bufferclearsilenceduration;
 }
 

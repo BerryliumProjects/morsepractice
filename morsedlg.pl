@@ -71,6 +71,7 @@ sub mainwindowcallback {
       prepareTest();
       $d->Contents(generateText());
    } elsif ($id eq 'play') {
+      validateSettings();
       playText($d->Contents);
    } elsif ($id eq 'flash') {
       flashText($d->Contents);
@@ -153,6 +154,10 @@ sub validateSettings {
    unless ($e->{practicetime} =~ /^[\d\.]+$/ and $e->{practicetime} > 0){
       $e->{practicetime} = 2;
    }
+
+   if ($e->{pitchshift} eq '') {
+      $e->{pitchshift} = 0;
+   }
 }
 
 
@@ -161,7 +166,7 @@ sub startAuto {
    validateSettings();
    prepareTest();
 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation})) or die; 
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift})) or die; 
    autoflush MP, 1;
 
    $d->Contents('');
@@ -476,7 +481,7 @@ sub marktest {
 sub playText {
    my $ptext = shift;
 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, '-t')) or die; 
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift}, '-t')) or die; 
    autoflush MP, 1;
 
    print MP "=   $ptext\n#\n";
@@ -532,7 +537,7 @@ sub calibrate {
    close(MP);
 
    # now play a standard message at the selected pitch and wpm 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation})) or die;
+   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift})) or die;
 
    autoflush MP, 1;
 
