@@ -117,6 +117,10 @@ sub prepareTest {
       $twg->addDictionary('qsophrases.txt', $e->{dictoffset}, $e->{dictsize});
    }
 
+   if ($e->{usehdict}) {
+      $twg->addDictionary('wordlist100.txt', $e->{dictoffset}, $e->{dictsize});
+   }
+
    if ($e->{useedict}) {
       $twg->addDictionary('wordlist.txt', $e->{dictoffset}, $e->{dictsize});
    }
@@ -147,7 +151,7 @@ sub validateSettings {
       $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
    }
 
-   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls} or $e->{usephonemes}) {
+   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls} or $e->{usephonemes} or $e->{usehdict}) {
       $e->{usepseudo} = 1; # ensure at least some words added
    }
 

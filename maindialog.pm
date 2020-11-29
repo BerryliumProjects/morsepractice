@@ -53,11 +53,12 @@ sub init {
    $mwdf->addCheckbuttonField('Use pseudo words', 'usepseudo',  0);
    $mwdf->addCheckbuttonField2('Use English words', 'useedict',  0);
    $mwdf->addCheckbuttonField('Use phonemes', 'usephonemes',  0);
-   $mwdf->addCheckbuttonField2('Use standard callsigns', 'usescalls',  0);
-   $mwdf->addCheckbuttonField('Use QSO terms', 'useqdict',  0);
-   $mwdf->addCheckbuttonField2('Use complex callsigns', 'useicalls',  0);
-   $mwdf->addCheckbuttonField('Use QSO phrases', 'useqphrases',  0);
-   $mwdf->addCheckbuttonField2('European prefixes', 'europrefix',  1);
+   $mwdf->addCheckbuttonField2('Use hundred common words', 'usehdict',  0);
+   $mwdf->addCheckbuttonField('Use standard callsigns', 'usescalls',  0);
+   $mwdf->addCheckbuttonField2('Use QSO terms', 'useqdict',  0);
+   $mwdf->addCheckbuttonField('Use complex callsigns', 'useicalls',  0);
+   $mwdf->addCheckbuttonField2('Use QSO phrases', 'useqphrases',  0);
+   $mwdf->addCheckbuttonField('European prefixes', 'europrefix',  1);
 
    $self->{d} = $mwdf->addWideTextField(undef, 'exercisetext', 10, 75, '');
    $self->{d}->focus;
