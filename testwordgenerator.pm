@@ -232,8 +232,15 @@ sub chooseElement {
 sub addWord {
    my $self = shift;
    my $word = shift;
-   push(@{$self->{testwords}}, lc($word));
-   $self->{size}++;
+
+   if (defined $word) {
+      $word =~ s/\s//g;
+
+      if ($word ne '') {
+         push(@{$self->{testwords}}, lc($word));
+         $self->{size}++;
+      }
+   }
 }
 
 

@@ -395,6 +395,7 @@ sub marktest {
    $r->{nonblankcharcount} = 0;
    $r->{testwordtext} = [];
    $r->{markedwords} = '';
+   $r->{focuswords} = '';
    $r->{focuschars} = '';
 
    $r->{reactionsbychar} = Histogram->new;
@@ -483,6 +484,7 @@ sub marktest {
       $r->{markedwords} .= "$userwordtext ";
 
       if ($userwordtext ne $testwordtext) {
+         $r->{focuswords} .= "$testwordtext ";
          $r->{markedwords} .= "# [$testwordtext] ";
       }
    }
@@ -580,7 +582,7 @@ sub stopAuto {
 
       if (defined $res and $res->{nonblankcharcount} > 0) {
          ResultsDialog::show($res, $mdlg);
-         $d->Contents(join(' ', @{$res->{testwordtext}})); # show playable test words
+         $d->Contents($res->{focuswords}); # retain failed test words
          $autoextraweights = $res->{focuschars};
       }
    }
