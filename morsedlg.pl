@@ -133,7 +133,19 @@ sub prepareTest {
       $twg->addCallsign($e->{europrefix}, 1, 50);
    }
 
+   if ($e->{usespecified}) {
+      foreach (split(/\s+/, $d->Contents)) {
+         $twg->addWord($_);
+      }
+   }
+
+   if ($twg->{size} < 1) {
+      $twg->addWord('dummy');
+   }
+
    $e->{wordlistsize} = $twg->{size};
+
+   
 }
 
 
@@ -149,10 +161,6 @@ sub validateSettings {
 
    if ($e->{retrymistakes}) {
       $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
-   }
-
-   unless ($e->{useqdict} or $e->{useqphrases} or $e->{useedict} or $e->{userandom} or $e->{usescalls} or $e->{useicalls} or $e->{usephonemes} or $e->{usehdict}) {
-      $e->{usepseudo} = 1; # ensure at least some words added
    }
 
    unless ($e->{practicetime} =~ /^[\d\.]+$/ and $e->{practicetime} > 0){
