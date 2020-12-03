@@ -110,19 +110,19 @@ sub prepareTest {
    }
 
    if ($e->{useqdict}) {
-      $twg->addDictionary('qsowordlist.txt', $e->{dictoffset}, $e->{dictsize});
+      $twg->addDictionary('qsowordlist.txt', 0, 999);
    }
 
    if ($e->{useqphrases}) {
-      $twg->addDictionary('qsophrases.txt', $e->{dictoffset}, $e->{dictsize});
+      $twg->addDictionary('qsophrases.txt', 0, 999);
    }
 
    if ($e->{usehdict}) {
-      $twg->addDictionary('wordlist100.txt', $e->{dictoffset}, $e->{dictsize});
+      $twg->addDictionary('wordlist100.txt', 0, 999);
    }
 
    if ($e->{useedict}) {
-      $twg->addDictionary('wordlist.txt', $e->{dictoffset}, $e->{dictsize});
+      $twg->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize});
    }
 
    if ($e->{usescalls}) {
