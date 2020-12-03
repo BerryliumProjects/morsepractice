@@ -51,7 +51,7 @@ sub init {
    $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
    $mwdf->addCheckbuttonField2('Use random sequences', 'userandom',  1);
    $mwdf->addCheckbuttonField('Use pseudo words', 'usepseudo',  0);
-   $mwdf->addCheckbuttonField2('Use English words', 'useedict',  0);
+   $mwdf->addCheckbuttonField2('Use English dictionary words', 'useedict',  0);
    $mwdf->addCheckbuttonField('Use phonemes', 'usephonemes',  0);
    $mwdf->addCheckbuttonField2('Use hundred common words', 'usehdict',  0);
    $mwdf->addCheckbuttonField('Use standard callsigns', 'usescalls',  0);

@@ -234,7 +234,8 @@ sub addWord {
    my $word = shift;
 
    if (defined $word) {
-      $word =~ s/\s//g;
+      $word =~ s/^\s//g;
+      $word =~ s/\s$//g;
 
       if ($word ne '') {
          push(@{$self->{testwords}}, lc($word));

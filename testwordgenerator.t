@@ -5,12 +5,11 @@ use testwordgenerator;
 use Data::Dumper;
 
 $w = TestWordGenerator->new(1,6,1);
-$w->addWord(" a\tb\rc\nd ");
-ok ($w->chooseWord eq 'abcd', 'whitespace ignored in word');
+$w->addWord(' ab ab ');
+ok ($w->chooseWord eq 'ab', 'leading/trailing whitespace ignored in word');
 $w->addWord(undef);
 $w->addWord(' ');
 ok ($w->{size} == 1, 'empty words not added');
-
 
 $w = TestWordGenerator->new(3,6,1);
 
