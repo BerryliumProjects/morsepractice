@@ -484,8 +484,28 @@ sub marktest {
       $r->{markedwords} .= "$userwordtext ";
 
       if ($userwordtext ne $testwordtext) {
-         $r->{focuswords} .= "$testwordtext ";
          $r->{markedwords} .= "# [$testwordtext] ";
+      }
+   }
+
+   # words to focus on next time (don't include any not attempted at end)
+   my $prevtestwordtext = '';
+
+   foreach (@testwordix) {
+      my $testwordtext = $testwords[$_]->wordtext;
+      last unless defined $userwords[$_];
+
+      my $userwordtext = $userwords[$_]->wordtext;
+
+      if ($userwordtext ne $testwordtext) {
+         if ((not $e->{syncafterword}) and ($prevtestwordtext ne '')) {
+            $r->{focuswords} .= "$prevtestwordtext "; # a likely cause of error
+            $prevtestwordtext = ''; # don't add twice
+         }
+
+	 $r->{focuswords} .= "$testwordtext ";
+      } else {
+         $prevtestwordtext = $testwordtext;
       }
    }
 
