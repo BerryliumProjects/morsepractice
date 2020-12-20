@@ -310,7 +310,7 @@ sub markword {
       $r->{pulsecount} += $testpulsecnt; # for whole session
       $r->{nonblankcharcount}++;
 
-      if ($userchar eq '_') { # missed char
+      if ($userchar eq '_' or $userchar eq '-') { # missed char
          $r->{missedchars}->add($testchar, 1);
          $r->{successbypos}->add($i, 0);
          $r->{focuschars} .= $prevtestchar . $testchar; # include the previous character which may have stumbled
