@@ -95,7 +95,8 @@ my $keylistlen = scalar(@keylist);
 
 
 $svr = Audio::Play->new(1);
-$bitrate = $svr->rate;
+$svr->rate(40000);
+$bitrate = $svr->rate; # may be lower than requested
 #$ratecorrection = 1; # 9600/8000; # for some reason audio plays slower than it should by this factor 
 print "Sampling rate: $bitrate\n";
 
