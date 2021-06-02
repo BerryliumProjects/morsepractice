@@ -27,7 +27,7 @@ sub init {
    my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback,300);
    $self->{e} = $mwdf->entries; # gridframe control values
 
-   $mwdf->addEntryField('Characters to practice', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addEntryField('Characters to practise', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
    $mwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
    $mwdf->addEntryField('Max word length', 'maxwordlength', 40, 9);
