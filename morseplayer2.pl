@@ -5,6 +5,7 @@ use Audio::Data;
 use Audio::Play;
 use Time::HiRes qw(time usleep);
 
+use lib '.';
 use charcodes;  # definitions of characters as dit-dah sequences
 
 use warnings;

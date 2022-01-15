@@ -11,6 +11,7 @@ use Tk::After;
 use IO::Handle;
 use Time::HiRes qw(time usleep);
 
+use lib '.';
 use charcodes; # definitions of characters as dit-dah sequences
 our %charcodes;
 
