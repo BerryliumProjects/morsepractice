@@ -605,6 +605,8 @@ sub stopAuto {
          ResultsDialog::show($res, $mdlg);
          $d->Contents($res->{focuswords}); # retain failed test words
          $autoextraweights = $res->{focuschars};
+      } else {
+         $d->Contents(join ' ', @{$res->{testwordtext}});
       }
    }
 
