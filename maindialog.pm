@@ -28,27 +28,27 @@ sub init {
    $self->{e} = $mwdf->entries; # gridframe control values
 
    $mwdf->addEntryField('Characters to practise', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
-   $mwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
-   $mwdf->addEntryField('Max word length', 'maxwordlength', 40, 9);
-   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
    $mwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
    $mwdf->addEntryField('Effective WPM', 'effwpm', 40, 20);
    $mwdf->addEntryField('Note pitch', 'pitch', 40, 600);
+   $mwdf->addEntryField('Tone volume attenuation (dB)', 'attenuation', 40, '10');
+   $mwdf->addEntryField('Dash-dot pitch shift (semitones)', 'pitchshift', 40, '0');
    $mwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
    $mwdf->addEntryField('Dash weight', 'dashweight', 40, 3);
+   $mwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
+   $mwdf->addEntryField('Max word length', 'maxwordlength', 40, 6);
    $mwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
    $mwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
    $mwdf->addEntryField('Dictionary sample size', 'dictsize', 40, 9999);
    $mwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
-   $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
-   $mwdf->addEntryField('Tone volume attenuation (dB)', 'attenuation', 40, '10');
-   $mwdf->addEntryField('Dash-dot pitch shift (semitones)', 'pitchshift', 40, '0');
+   $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
    $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  1, undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
    $mwdf->addCheckbuttonField2('Character reaction times', 'measurecharreactions',  1);
-   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  0);
+   $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  1);
    $mwdf->addCheckbuttonField2('Use random sequences', 'userandom',  1);
    $mwdf->addCheckbuttonField('Use pseudo words', 'usepseudo',  0);
    $mwdf->addCheckbuttonField2('Use English dictionary words', 'useedict',  0);
