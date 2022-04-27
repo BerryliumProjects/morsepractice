@@ -73,10 +73,15 @@ sub mainwindowcallback {
       $d->Contents(generateText());
    } elsif ($id eq 'play') {
       validateSettings();
-      playText($d->Contents);
+      prepareTest();
+      playText();
    } elsif ($id eq 'flash') {
-      flashText($d->Contents);
+      validateSettings();
+      prepareTest();
+      flashText();
    } elsif ($id eq 'start') {
+      validateSettings();
+      prepareTest();
       startAuto();
    } elsif ($id eq 'finish') {
       abortAuto();
@@ -176,9 +181,6 @@ sub validateSettings {
 
    
 sub startAuto {
-   validateSettings();
-   prepareTest();
-
    open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift})) or die; 
    autoflush MP, 1;
 
@@ -514,17 +516,32 @@ sub marktest {
 }
 
 sub playText {
-   my $ptext = shift;
+   my $ptext = $d->Contents;
+
+   if ($ptext eq '') {
+      $ptext = generateText();
+   }
 
    open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift}, '-t')) or die; 
    autoflush MP, 1;
 
    print MP "=   $ptext\n#\n";
    close(MP);
+
+   syncflush();
+
+   if ($d->Contents eq '') {
+      $d->Contents($ptext);
+   }
 }
 
 sub flashText {
-   my $ftext = shift;
+   my $ftext = $d->Contents;
+
+   if ($ftext eq '') {
+      $ftext = generateText();
+   }
+
    my $semichartime = 60.0 / 6 / 2 / $e->{effwpm};
 
    # temporarily remove line buffering from console, otherwise nothing is seen
@@ -543,6 +560,10 @@ sub flashText {
    }
 
    print "\nEnd of text flashing exercise\n\n";
+
+   if ($d->Contents eq '') {
+      $d->Contents($ftext);
+   }
 }
 
 sub generateText {
