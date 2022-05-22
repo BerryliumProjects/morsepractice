@@ -5,7 +5,14 @@
 
 	<p> This application is designed to help you learn and improve copying morse code, by enabling you to create exercises to suit your level of expertise. </p>
 
-	<p> The program is written in perl, which natively runs on Linux and also works on Windows using a suitable implementation, such as &quot;Strawberry Perl&quot;. Some additional perl modules will likely be required: Audio::Data and Audio::Play. </p>
+	<p> The program is written in perl, which natively runs on Linux and also works on Windows using a suitable implementation, such as &quot;Strawberry Perl&quot;. The following perl modules are used, which may need to be installed:
+
+	<ul>	<li>Tk</li>
+		<li>Audio::Data</li>
+		<li>Audio::Play</li>
+		<li>Time::HiRes</li>
+		<li>IO::Handle</li>
+	</ul></p>
 
 	<p> The application can be downloaded from my <a href="https://github.com/BerryliumProjects/morsepractice.git" target="_blank">BerryliumProjects github repository</a>. If you are a git user, then feel free to amend the program however you want, and possibly even feed back improvements. Otherwise you can download a zip of the files (they are all in a single location) and unpack that locally.  Open the installation directory in a shell and type <pre>perl morsedlg.pl</pre> to run it. </p>
 
@@ -183,7 +190,7 @@
 
 	<p> <b>Achieved paris wpm</b> is an indication of how much information is being processed successfully, based on the number of pulses in the words played. Longer pauses between words, as well as typing time if waiting for each word to be input, will reduce this statistic.</p>
 
-	<p> <b>Achieved character wpm</b> is an alternative indication of attained speed, based on how accurately characters are being copied, at the effective wpm specified. It is not affected by typing time if waiting for each word to be entered, and also not affected by character length. so is likely to be an overstatement of capability. </p>
+	<p> <b>Achieved character wpm</b> is an alternative indication of attained speed, based on how accurately characters are being copied, at the effective wpm specified. It is not affected by typing time if waiting for each word to be entered, and also not affected by character length; so is likely to be an overstatement of capability. </p>
 
 	<p> <b>Relative character weight</b> shows the actual average character length (in pulses) compared to that assumed in the PARIS standard. Random characters including punctuation and numbers will result in a factor over 100%. It is difficult to copy very short characters (E being the hardest) as thinking and typing speed is unlikely to keep up,  but also hard to recognise very long sequences such as punctuation. Suitable exercises of both these extremes are useful.</p>
 
@@ -192,8 +199,37 @@
 	<p> <b>Marked test words </b> shows the details of what you entered compared to what was played. Incorrect words will be marked with a # and the correct word shown. Look for any patterns you can work on.  Be aware that alignment of words and characters may fail unless errors are spaced well apart. </p>
 
 	<h3>Character copying mode</h3>
+
+	<p> These analysis outputs are shown if <b>Character reaction times</b> was selected on the main dialog. </p>
+
+	<p> <b>Slowest reactions by character</b> lists the 5 characters you took the most time to recognise and type in, along with the number of milliseconds taken. The characters are ordered by improving reaction time. The space at the end of a word is also treated as a character and is identified by the &apos;&gt;&apos; symbol. </p>
+
+	<p> This can be an aid to know what to focus on, but note that characters presented near the start of words may show longer reaction times, particularly if you are trying to wait for a few characters to be heard before typing.  The most accurate comparison is therefore with a word length of 1 character.</p>
+
+	<p><b>Reactions and success rate by position</b> provides an alternative reaction time analysis, this time by considering the position of the character within a word, where 0 is the initial character. Up to 9 character index positions are shown. The space at the end of the word is denoted by &apos;&gt;&apos;. Alongside this, the percentage and fraction of cases which were copied correctly is also shown. This can illustrate if your success tails off after a certain number of characters have been copied, or if you are missing the beginnings of words as you are still processing the previous word.</p>
+
+	<p> If you find you lose track in the middle of longer words and have difficulty getting back into sync with the incoming sound, this analysis may help you track progress in letting go promptly to try and catch the end of the word. In fact plain English can be surprisingly readable if just the beginnings and ends of words are seen.<p>
+
 	<h3>Word copying mode</h3>
+
+	<p> If you have progressed to mentally assembling a word before typing it, then this mode may be more useful to measure your mental processing time. The following statistics are calculated rather than per-character reaction times:
+
+	<ul><li><b>Word start</b> measures the average time (in milliseconds) between the earliest time that the end of a word could be detected (absence of a dit or dah after the expected gap) and the moment you typed the first character in response. This can be negative, which represents anticipation of the end of word.  It can occur if either you had set a fixed word length (so did not need to wait for confirmation of a word gap) or if the word was longer than you are comfortable assembling mentally so wanted to start typing before it had finished. </li>
+		<li><b>Word end</b> measures the average time between the end of the word and when you typed the space after the word. Compared with the <b>Word start</b> time, this shows how quickly you typed the word. Compared with the <b>Space time</b> it shows how much overlap there was, of typing whilst the next word had already started. It becomes harder to still be typing during the next word.</li>
+
+		<li><b>Space time</b> shows how much time was available to type a response. It is very unlikely that you can type fast enough to fit a whole word into an inter-word gap, however when compared to the <b>Word start</b> time, it gives an indication if you had recognised a word (without typing) before the next word started, which is how free-flowing &apos;head copy&apos; would work.</li></ul></p>
+
+	<p> The <b>Success rate by position</b> report is also shown in this mode, however no reaction times are shown as these are irrelevant.</p> 
+
 	<h3>Detail in terminal output</h3>
+
+	<p> After a summary of the parameters passed to the audio player component (morseplayer2.pl), a detailed log of responses and reaction times are shown at the end of the exercise. The fields shown are:
+
+	<ul><li>test character</li>
+	<li>number of pulses (dit length) in the character, including the inter-character gap</li>
+	<li>the character you typed in response (note that this is after attempting to re-align characters if mistakes were made, so might be incorrect) </li>
+	<li>reaction time to respond to the character, whatever statistical display mode is selected </li>
+	<li>typing time is the time between keystrokes (so is not reported for the first character in a word). This indicates your typing proficiency if you are responding to a word or partial word as a continuous sequence.</li></ul></p>
 
 </body>
 </html>
