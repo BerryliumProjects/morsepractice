@@ -7,18 +7,23 @@ EI	Ireland
 F	France
 G	England
 GB	UK special
-GX	UK club
+GX	England club
+GC	Welsh club
 GD	Isle of Man
 GM	Scotland
+GS	Scottish club
 GW	Wales
-GN	N Ireland
+GI	N Ireland
+GN	N Ireland club
+GU	Guernsey
 GJ	Jersey
 M	England
 MD	Isle of Man
 MM	Scotland
 MW	Wales
-MN	N Ireland
+MI	N Ireland
 MJ	Jersey
+MU	Guernsey
 HA	Hungary
 HB	Switzerland
 HF	Poland
@@ -43,11 +48,12 @@ TU	Turkey
 TF	Iceland
 UR	Ukraine
 YL	Latvia
-2E	UK
+2E	England
 2M	Scotland
 2W	Wales
 2D	Isle of Man
-2N	N Ireland
+2I	N Ireland
 2J	Jersey
+2U	Guernsey
 5B	Cyprus
 9A	Croatia
