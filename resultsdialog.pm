@@ -148,7 +148,9 @@ sub positionstatsreport {
       }
 
       # space reactions - no success stats
-      $positionstatsreport .= sprintf ("%8s%8i ms\n", '>', $avgreactionsbypos{-1} * 1000 + 0.5);
+      if ($e->{maxwordlength} > 1) {
+         $positionstatsreport .= sprintf ("%8s%8i ms\n", '>', $avgreactionsbypos{-1} * 1000 + 0.5);
+      }
    } else { # only show success stats, not timings
       foreach my $pos (sort keys %avgsuccessbypos) {
          my $avgsuccessbypospc = int($avgsuccessbypos{$pos} * 100 + 0.5);
