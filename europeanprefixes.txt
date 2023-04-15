@@ -56,5 +56,6 @@ YL	Latvia
 2J	Jersey
 2U	Guernsey
 5B	Cyprus
-9A 	Croatia
+9A	Croatia
 9H	Malta
+
