@@ -144,9 +144,9 @@ sub addCallsign {
       my @prefixes;
 
       if ($europrefix and open(EUROPFX, "europeanprefixes.txt")) {
-            my @europrefixes = <EUROPFX>;
-            close(EUROPFX);
-            chomp(@europrefixes);
+         my @europrefixes = <EUROPFX>;
+         close(EUROPFX);
+         chomp(@europrefixes);
 
          for (my $j = 0; $j<2; $j++) {
             my $prefix = $europrefixes[int(rand(scalar(@europrefixes)))];
