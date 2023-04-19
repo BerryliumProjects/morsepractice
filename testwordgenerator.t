@@ -1,5 +1,6 @@
 #! /usr/bin/perl
 
+use lib '.';
 use Test::Simple tests=>14;
 use testwordgenerator;
 use Data::Dumper;

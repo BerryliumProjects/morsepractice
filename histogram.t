@@ -1,5 +1,6 @@
 #! /usr/bin/perl
 
+use lib '.';
 use Test::Simple tests=>7;
 use histogram;
 use Data::Dumper;

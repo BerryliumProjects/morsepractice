@@ -58,4 +58,3 @@ YL	Latvia
 5B	Cyprus
 9A	Croatia
 9H	Malta
-
