@@ -225,6 +225,57 @@ sub addWideTextField {
    return $entryctl;
 }
 
+sub addListboxField {
+   my $self = shift;
+   my $ctllabel = shift;
+   my $ctlvar = shift;
+   my $width = shift;
+   my $initvalue = shift;
+   my $shortcutaltkey = shift;
+   my $onfocusout = shift;
+   my $attributes = shift;
+
+   (defined $attributes) or ($attributes = '');
+
+   $self->{entries}->{$ctlvar} = $initvalue;
+
+   my $row = ++($self->{row});
+
+   my $labelctl = $self->{g}->Label(-text=>$ctllabel, -font=>'msgbox');
+   $labelctl->grid(-row=>$row, -column=>1, -sticky=>'w');
+
+   my $entryctl = $self->{g}->Listbox(-width=>$width, -font=>'msgbox');
+   $entryctl->grid(-row=>$row, -column=>2, -sticky=>'w');
+   $self->{controls}->{$ctlvar} = $entryctl;
+
+   if (defined $shortcutaltkey) {
+      $self->{w}->bind("<Alt-KeyPress-$shortcutaltkey>", [$entryctl => 'focus']);
+      my $underlinepos = index(lc($ctllabel),$shortcutaltkey);
+
+      if ($underlinepos >= 0) {
+         $labelctl->configure(-underline=>$underlinepos);
+      }
+   }
+
+   if (defined $onfocusout) {
+      $entryctl->bind('<FocusOut>', $onfocusout);
+   }
+      
+   my $onselect = sub {
+         $self->{entries}->{$ctlvar} = $entryctl->curselection;
+   }; 
+
+   $entryctl->bind('<<ListboxSelect>>', $onselect);
+
+   if ($attributes =~ /locked/) {
+      $entryctl->configure(-state=>'disabled');
+   }
+
+   $self->{attr}->{$ctlvar} = "listbox $attributes ";
+
+   return $entryctl;
+}
+
 sub addButtonField {
    my $self = shift;
    my $ctllabel = shift;
