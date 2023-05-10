@@ -30,6 +30,8 @@ $tf1->insert('end', 'Wide text field contents');
 $lb1 = $df->addListboxField('Listbox', 'listbox', 40);
 $lb1->insert('end', 'Option1');
 $lb1->insert('end', 'Option 2');
+$df->addHiddenField('Hidden Field', 'hidden', 123);
+$e->{hidden}++;
 $df->addButtonField('Quit', 'quit',  'q', sub{$w->destroy});
 
 
