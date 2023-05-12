@@ -27,6 +27,17 @@ sub init {
    my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback,300);
    $self->{e} = $mwdf->entries; # gridframe control values
 
+   my $lb = $mwdf->addListboxField('Exercise type', 'exercisetype', 40, '');
+   $lb->insert('end', 'Single characters');
+   $lb->insert('end', 'Random sequences');
+   $lb->insert('end', 'Pseudo words');
+   $lb->insert('end', 'Callsigns');
+   $lb->insert('end', 'Common words');
+   $lb->insert('end', 'Dictionary words');
+   $lb->insert('end', 'QSO terms');
+   $lb->insert('end', 'QSO phrases');
+   $lb->insert('end', 'Numbers');
+
    $mwdf->addEntryField('Characters to practise', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
    $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
@@ -65,6 +76,7 @@ sub init {
    $self->{d}->focus;
 
    # buttons use callback by default
+   $mwdf->addButtonField('Options', 'options',  'o');
    $mwdf->addButtonField('Calibrate', 'calibrate',  'c');
    $mwdf->addButtonField('AutoWeight', 'autoweight',  'u');
    $mwdf->addButtonField('Generate', 'generate',  'g');

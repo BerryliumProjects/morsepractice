@@ -19,6 +19,7 @@ use dialogfields;
 use testwordgenerator;
 use histogram;
 use maindialog;
+use optionsdialog;
 use resultsdialog;
 use word;
 
@@ -43,7 +44,6 @@ my $userwordinput;
 my $mdlg = MainDialog->init(\&mainwindowcallback);
 my $e = $mdlg->{e};
 my $d = $mdlg->{d};
-
 unlink($mp2pidfile) if -f $mp2pidfile;
 validateSettings();
 setexweights();
@@ -61,6 +61,8 @@ sub mainwindowcallback {
    if ($id eq 'exercisekey') {
       my $ch = shift;
       checkchar($ch);
+   } elsif ($id eq 'options') {
+      setoptions();
    } elsif ($id eq 'setexweights') {
       setexweights();
    } elsif ($id eq 'calibrate') {
@@ -87,6 +89,11 @@ sub mainwindowcallback {
       abortAuto();
    }
 }
+
+sub setoptions {
+   OptionsDialog::show($e->{exercisetype}, $mdlg);
+}
+
 
 sub setexweights {
    if ($e->{userelfreq}) {
