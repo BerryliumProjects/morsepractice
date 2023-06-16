@@ -11,6 +11,7 @@ use Tk::DialogBox;
 use Data::Dumper;
 use Tk::After;
 
+use lib '.';
 use dialogfields;
 
 sub init {
@@ -23,8 +24,9 @@ sub init {
    $self->{w} = MainWindow->new();
 
    $self->{w}->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
-
-   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},$callback,300);
+## experimental - will kill all functionality except calibrate !!!
+#   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},sub{mainwindowcallback($self, @_)},300);
+   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},sub{&$callback($self,@_)},300);
    $self->{e} = $mwdf->entries; # gridframe control values
 
    my $lb = $mwdf->addListboxField('Exercise type', 'exercisetype', 40, '');
@@ -76,7 +78,7 @@ sub init {
    $self->{d}->focus;
 
    # buttons use callback by default
-   $mwdf->addButtonField('Options', 'options',  'o');
+   $mwdf->addButtonField('Next', 'next',  'n');
    $mwdf->addButtonField('Calibrate', 'calibrate',  'c');
    $mwdf->addButtonField('AutoWeight', 'autoweight',  'u');
    $mwdf->addButtonField('Generate', 'generate',  'g');
@@ -137,6 +139,43 @@ sub setControlState {
        $mwdf->{controls}->{finish}->configure(-state=>'normal');
    } else {
        $mwdf->{controls}->{finish}->configure(-state=>'disabled');
+   }
+}
+
+sub mainwindowcallback {
+   my $self = shift;
+   my $id = shift; # name of control firing event
+
+   if ($id eq 'exercisekey') {
+      my $ch = shift;
+      checkchar($ch);
+   } elsif ($id eq 'next') {
+      runexercise();
+   } elsif ($id eq 'setexweights') {
+      setexweights();
+   } elsif ($id eq 'calibrate') {
+      my $ex = Exercise->init($self);
+      $ex->calibrate;
+   } elsif ($id eq 'autoweight') {
+      autoweight();
+   } elsif ($id eq 'generate') {
+      validateSettings();
+      prepareTest();
+#      $d->Contents(generateText());
+   } elsif ($id eq 'play') {
+      validateSettings();
+      prepareTest();
+      playText();
+   } elsif ($id eq 'flash') {
+      validateSettings();
+      prepareTest();
+      flashText();
+   } elsif ($id eq 'start') {
+      validateSettings();
+      prepareTest();
+      startAuto();
+   } elsif ($id eq 'finish') {
+      abortAuto();
    }
 }
 

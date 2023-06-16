@@ -1,26 +1,26 @@
 #! /usr/bin/perl 
 use strict;
 use warnings;
+package Exercise;
 
-use Tk;
-use Tk::ROText;
-use Tk::DialogBox;
+#use Tk;
+#use Tk::ROText;
+#use Tk::DialogBox;
 
 use Data::Dumper;
-use Tk::After;
+#use Tk::After;
 use IO::Handle;
 use Time::HiRes qw(time usleep);
 
 use lib '.';
-use charcodes; # definitions of characters as dit-dah sequences
+use charcodes;
 our %charcodes;
 
-use dialogfields;
+#use dialogfields;
 use testwordgenerator;
 use histogram;
-use maindialog;
-use exercisedialog;
-use exercise;
+#use maindialog;
+#use exercisedialog;
 use resultsdialog;
 use word;
 
@@ -33,33 +33,111 @@ my $mp2statsfile = '/var/tmp/mp2stats.txt';
 my $morseplayer = "./morseplayer2.pl"; 
 
 # global variables
-my $twg;
-my $starttime;
-my $autoextraweights = '';
-my $abortpendingtime;
-my $userabort;
-my @userwords;
-my $testwordcnt;
-my $userwordinput;
-
-my $mdlg = MainDialog->init(\&mainwindowcallback);
-my $e = $mdlg->{e};
-my $d = $mdlg->{d};
 unlink($mp2pidfile) if -f $mp2pidfile;
-validateSettings();
-setexweights();
+# validateSettings();
+# setexweights();
 
-$e->{keylist} = join('', sort keys(%charcodes));
-$e->{keylist} =~ s/ //; # remove blank as an option
+# $e->{keylist} = join('', sort keys(%charcodes));
+# $e->{keylist} =~ s/ //; # remove blank as an option
 
-$mdlg->setControlState('normal');
-$mdlg->show;
-exit 0;
+# $mdlg->setControlState('normal');
+# $mdlg->show;
+# exit 0;
 
-sub mainwindowcallback {
-   my $mdlg = shift;
+sub init {
+   my $class = shift;
+   
+   my $self = {};
+   bless($self, $class);
+   $self->{dlg} = shift;
+   $self->{twg} = undef;
+   $self->{starttime} = 0;
+   $self->{abortpendingtime} = 0;
+   $self->{userwords} = undef;
+   $self->{testwordcnt} = 0;
+   $self->{userwordinput} = undef;
+   $self->{MP} = undef;
+   return $self;
+}
+
+sub openPlayer {
+   my $self = shift;
+   my $textmode = shift;
+
+   my $e = $self->{dlg}->{e};
+
+   die "Opening Player when already connected"  if defined($self->{MP});
+
+   my @audiofields = qw/wpm effwpm pitch playratefactor dashweight extrawordspaces attenuation pitchshift/;
+   my $textswitch = $textmode ? '-t' : '';
+   my %ehash = %{$e}; # simplifies taking a slice of the values
+   my $openargs = join(' ', @ehash{@audiofields}, $textswitch); 
+   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
+
+   defined($self->{MP}) or die "Player pipe filehandle not defined";
+   autoflush {$self->{MP}} 1;
+}  
+
+sub openStandardPlayer {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   die "Opening Player when already connected"  if defined($self->{MP});
+
+   my $openargs = join(' ', 20, 20, 440, $e->{playratefactor}, 3, 0, 10, 0);
+   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
+
+   defined($self->{MP}) or die "Player pipe filehandle not defined";
+   autoflush {$self->{MP}} 1;
+}
+
+sub closePlayer {
+   my $self = shift;
+   my $force = shift;
+
+   my $e = $self->{dlg}->{e};
+
+   return unless defined($self->{MP});
+
+   if ($force) {
+      open(PIDFILE, $mp2pidfile);
+      my $mp2pid = <PIDFILE>;
+      close(PIDFILE);
+
+      chomp($mp2pid);
+
+      kill('SIGTERM', $mp2pid); # ask player to terminate early
+      unlink($mp2pidfile);
+   } else {
+      print {$self->{MP}} "#\n";
+   }
+
+   close($self->{MP}); 
+   $self->{MP} = undef;
+   $self->syncflush;
+}
+
+sub writePlayer {
+   my $self = shift;
+   my $text = shift;
+
+   my $e = $self->{dlg}->{e};
+
+   die unless defined($self->{MP});
+
+   print {$self->{MP}} "$text\n";
+}
+
+
+sub getCharCodes {
+   my $charcodes = join('', sort keys(%charcodes));
+   return $charcodes =~ s/ //; # remove blank
+}
+
+
+sub X_mainwindowcallback {
    my $id = shift; # name of control firing event
-
+my $d; #dummy###
    if ($id eq 'exercisekey') {
       my $ch = shift;
       checkchar($ch);
@@ -74,7 +152,6 @@ sub mainwindowcallback {
    } elsif ($id eq 'generate') {
       validateSettings();
       prepareTest();
-      my $d = $mdlg->{mwdf}->control('exercisetext');
       $d->Contents(generateText());
    } elsif ($id eq 'play') {
       validateSettings();
@@ -93,12 +170,10 @@ sub mainwindowcallback {
    }
 }
 
-sub runexercise {
-   ExerciseDialog::show($e->{exercisetype}, $mdlg);
-}
-
-
 sub setexweights {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    if ($e->{userelfreq}) {
       $e->{xweights} = TestWordGenerator->plainEnglishWeights($e->{keylist}); 
    } else {
@@ -107,66 +182,70 @@ sub setexweights {
 }
 
 sub prepareTest {
-   $autoextraweights = ''; 
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
 
-   $twg = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
+   $e->{autoextraweights} = ''; 
+
+   $self->{twg} = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
 
    # build selected word list considering complexity and min/max word length
 
    if ($e->{userandom}) {
-      $twg->addRandom($e->{keylist} . $e->{xweights}, 200);
+      $self->{twg}->addRandom($e->{keylist} . $e->{xweights}, 200);
    }
 
    if ($e->{usepseudo}) {
-      $twg->addPseudo(200);
+      $self->{twg}->addPseudo(200);
    }
 
    if ($e->{usephonemes}) {
-      $twg->addPhonemes();
+      $self->{twg}->addPhonemes();
    }
 
    if ($e->{useqdict}) {
-      $twg->addDictionary('qsowordlist.txt', 0, 999);
+      $self->{twg}->addDictionary('qsowordlist.txt', 0, 999);
    }
 
    if ($e->{useqphrases}) {
-      $twg->addDictionary('qsophrases.txt', 0, 999);
+      $self->{twg}->addDictionary('qsophrases.txt', 0, 999);
    }
 
    if ($e->{usehdict}) {
-      $twg->addDictionary('wordlist100.txt', 0, 999);
+      $self->{twg}->addDictionary('wordlist100.txt', 0, 999);
    }
 
    if ($e->{useedict}) {
-      $twg->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize});
+      $self->{twg}->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize});
    }
 
    if ($e->{usescalls}) {
-      $twg->addCallsign($e->{europrefix}, 0, 200);
+      $self->{twg}->addCallsign($e->{europrefix}, 0, 200);
    }
 
    if ($e->{useicalls}) {
-      $twg->addCallsign($e->{europrefix}, 1, 50);
+      $self->{twg}->addCallsign($e->{europrefix}, 1, 50);
    }
 
    if ($e->{usespecified}) {
-      foreach (split(/\s+/, $d->Contents)) {
-         $twg->addWord($_);
+      foreach (split(/\s+/, $self->{dlg}->{d}->Contents)) {
+         $self->{twg}->addWord($_);
       }
    }
 
-   if ($twg->{size} < 1) {
-      $twg->addWord('dummy');
+   if ($self->{twg}->{size} < 1) {
+      $self->{twg}->addWord('dummy');
    }
 
-   $e->{wordlistsize} = $twg->{size};
+   $e->{wordlistsize} = $self->{twg}->{size};
 
    
 }
 
 
 
-sub validateSettings {
+sub X_validateSettings {
+my ($d, $e); # dummy, sub will be removed later
    if (not $e->{minwordlength}) { # check if numeric and > 0
       $e->{minwordlength} = 1;
    }
@@ -191,49 +270,55 @@ sub validateSettings {
 
    
 sub startAuto {
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift})) or die; 
-   autoflush MP, 1;
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
 
-   $d->Contents('');
-   $d->focus;
-   $mdlg->setControlState('disabled');
-   $abortpendingtime = 0;
-   $userabort = 0;
+   $self->openPlayer();   
+      
+   $self->{dlg}->{d}->Contents('');
+   $self->{dlg}->{d}->focus;
+   $self->{dlg}->setControlState('disabled');
+   $self->{abortpendingtime} = 0;
    Word->debounce('');
-   @userwords = ();
-   $userwordinput = Word->new;
-   $testwordcnt = 0;
+   $self->{userwords} = [];
+   $self->{userwordinput} = Word->new;
+   $self->{testwordcount} = 0;
 
-   print MP "= \n";
+   $self->writePlayer("= ");
    sleep 2;
-   syncflush();
+   $self->syncflush;
    unlink($mp2statsfile);
 
-   $starttime = undef;
+   $self->{starttime} = undef;
  
-   $mdlg->startusertextinput;
+   $self->{dlg}->startusertextinput;
 
    if ($e->{syncafterword}) {   
-      print MP $twg->chooseWord . "\n";
+      $self->writePlayer($self->{twg}->chooseWord);
    } else {
       my $testtext = generateText();
       my @testtext = split(/ /, $testtext);     
-      $testwordcnt = scalar(@testtext); # target word count
-      print MP "$testtext\n";
+      $self->{testwordcount} = scalar(@testtext); # target word count
+      $self->writePlayer($testtext);
    }
 }
 
 sub abortAuto {
-   $abortpendingtime = time();
-   $userabort = 1;
-   $starttime = time() unless defined $starttime; # ensure defined
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   $self->{abortpendingtime} = time();
+   $self->{starttime} = time() unless defined $self->{starttime}; # ensure defined
    stopAuto(); 
 }
 
 sub checkchar {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    my $ch = shift;
 
-   $starttime = time() unless defined $starttime; # count from first response
+   $self->{starttime} = time() unless defined $self->{starttime}; # count from first response
 
    $ch = '' unless defined($ch);
    $ch = lc($ch);
@@ -247,60 +332,69 @@ sub checkchar {
       }
    }
 
-   if ($abortpendingtime) {
+   if ($self->{abortpendingtime}) {
       stopAuto();
    }
 }
 
 sub buildword {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    my $ch = shift;
 
    if ($ch eq "\b") {
       if ($e->{allowbackspace}) {
          # discard final character and stats
-         $userwordinput->undo;
+         $self->{userwordinput}->undo;
       }
    } else {
-      $userwordinput->append($ch);
+      $self->{userwordinput}->append($ch);
 
-      if ($userwordinput->{complete}) {
-         checkword($userwordinput);
-         $userwordinput = Word->new;
+      if ($self->{userwordinput}->{complete}) {
+         checkword($self->{userwordinput});
+         $self->{userwordinput} = Word->new;
       }
    }
 }
 
 sub checkword {
-   my $userwordinput = shift;
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   $self->{userwordinput} = shift;
 
    if ($e->{syncafterword}) {
-      syncflush();
+      $self->syncflush;
 
-      if (($e->{practicetime} * 60) < (time() - $starttime)) {
-         $abortpendingtime = time();
+      if (($e->{practicetime} * 60) < (time() - $self->{starttime})) {
+         $self->{abortpendingtime} = time();
       } else {
-         my $testword = $twg->{prevword};
-         my $userword = $userwordinput->wordtext;
+         my $testword = $self->{twg}->{prevword};
+         my $userword = $self->{userwordinput}->wordtext;
 
          if (($userword ne $testword) and $e->{retrymistakes}) {
-            $d->insert('end', '# ');
+            $self->{dlg}->{d}->insert('end', '# ');
          } else {
-            $testword = $twg->chooseWord;
+            $testword = $self->{twg}->chooseWord;
          }
 
-         print MP "$testword\n";
+         $self->writePlayer($testword);
       }
    } else {
-      if (scalar(@userwords) + 1 >= $testwordcnt) {
-         $abortpendingtime = time();
+      if (scalar(@{$self->{userwords}}) + 1 >= $self->{testwordcount}) {
+         $self->{abortpendingtime} = time();
       }
    }
 
-   push(@userwords, $userwordinput);
+   push(@{$self->{userwords}}, $self->{userwordinput});
 }
 
 
 sub markword { 
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    # find characters in error and mark reactions
    my $userinputref = shift;
    my $teststatsref = shift;
@@ -375,9 +469,12 @@ sub markword {
 }
 
 sub marktest {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    my $r = {}; # results structure
 
-   $d->Contents(''); # clear the text display
+   $self->{dlg}->{d}->Contents(''); # clear the text display
 
    # get test report from player
    my $statshandle;
@@ -390,7 +487,7 @@ sub marktest {
    while ($testword->{complete}) {
       # if exercise was terminated early, ignore any test content after that time
       # allow up to a second of user anticipation on last word
-      if ($abortpendingtime > 0 and $testword->{endtime} > $abortpendingtime + 1) {
+      if ($self->{abortpendingtime} > 0 and $testword->{endtime} > $self->{abortpendingtime} + 1) {
          last;
       }
 
@@ -402,7 +499,7 @@ sub marktest {
    unlink($mp2statsfile);
 
    $r->{testwordcnt} = scalar(@testwords);
-   $r->{duration} = time() - $starttime;
+   $r->{duration} = time() - $self->{starttime};
    $r->{successes} = 0;
    $r->{pulsecount} = 0;
    $r->{nonblankcharcount} = 0;
@@ -429,14 +526,14 @@ sub marktest {
    my $iuw = 0;
 
    foreach (@testwordix) {
-      last unless defined $userwords[$iuw];
+      last unless defined $self->{userwords}->[$iuw];
 
-      my (@newwords) = $userwords[$iuw]->split($testwords[$_]->wordtext);
+      my (@newwords) = $self->{userwords}->[$iuw]->split($testwords[$_]->wordtext);
       my $newcnt = scalar(@newwords);
 
       if ($newcnt == 2) {
          # replace original word with two new ones
-          splice(@userwords, $iuw, 1, @newwords);
+          splice(@{$self->{userwords}}, $iuw, 1, @newwords);
       }
 
       $iuw += $newcnt;
@@ -448,14 +545,14 @@ sub marktest {
       my $previoususerwordtext = '';
 
       foreach (@testwordix) {
-         last unless defined $userwords[$_];
+         last unless defined $self->{userwords}->[$_];
 
-         my $userwordtext = $userwords[$_]->wordtext;
+         my $userwordtext = $self->{userwords}->[$_]->wordtext;
          my $testwordtext = $testwords[$_]->wordtext;
 
          if (($userwordtext ne '') and ($testwordtext ne $userwordtext) and ($testwordtext eq $previoususerwordtext)) {
             # insert dummy user word with zero times - no reactions will be processed
-            splice(@userwords, $_ - 1, 0, Word->createdummy(length($testwordtext)));
+            splice(@{$self->{userwords}}, $_ - 1, 0, Word->createdummy(length($testwordtext)));
             $userwordtext = $previoususerwordtext;
          }
 
@@ -465,8 +562,8 @@ sub marktest {
 
    # re-align characters in words in case some missed
    foreach (@testwordix) {
-      if (defined $userwords[$_]) {
-         $userwords[$_]->align($testwords[$_]->wordtext);
+      if (defined $self->{userwords}->[$_]) {
+         $self->{userwords}->[$_]->align($testwords[$_]->wordtext);
       }
    }
 
@@ -474,15 +571,15 @@ sub marktest {
    print "\nReport fields: testchar, pulsecount, userchar, reaction(ms), typingtime(ms)\n\n";
 
    foreach (@testwordix) {
-      print $testwords[$_]->report($userwords[$_]), "\n";
+      print $testwords[$_]->report($self->{userwords}->[$_]), "\n";
 
    }
 
    # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
    foreach (@testwordix) {
-      last unless defined $userwords[$_];
+      last unless defined $self->{userwords}->[$_];
       # analyse word characters
-      markword($userwords[$_], $testwords[$_], $r);
+      markword($self->{userwords}->[$_], $testwords[$_], $r);
    }
 
    # summary of test with corrections shown
@@ -490,8 +587,8 @@ sub marktest {
       my $testwordtext = $testwords[$_]->wordtext;
       my $userwordtext = '';
 
-      if (defined $userwords[$_]) {
-         $userwordtext = $userwords[$_]->wordtext;
+      if (defined $self->{userwords}->[$_]) {
+         $userwordtext = $self->{userwords}->[$_]->wordtext;
       }
 
       $r->{markedwords} .= "$userwordtext ";
@@ -506,9 +603,9 @@ sub marktest {
 
    foreach (@testwordix) {
       my $testwordtext = $testwords[$_]->wordtext;
-      last unless defined $userwords[$_];
+      last unless defined $self->{userwords}->[$_];
 
-      my $userwordtext = $userwords[$_]->wordtext;
+      my $userwordtext = $self->{userwords}->[$_]->wordtext;
 
       if ($userwordtext ne $testwordtext) {
          if ((not $e->{syncafterword}) and ($prevtestwordtext ne '')) {
@@ -526,27 +623,29 @@ sub marktest {
 }
 
 sub playText {
-   my $ptext = $d->Contents;
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   my $ptext = $self->{dlg}->{d}->Contents;
 
    if ($ptext eq '') {
       $ptext = generateText();
    }
 
-   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift}, '-t')) or die; 
-   autoflush MP, 1;
+   $self->openPlayer(1); # multi-line text mode
+   $self->writePlayer("=   $ptext");
+   $self->closePlayer;
 
-   print MP "=   $ptext\n#\n";
-   close(MP);
-
-   syncflush();
-
-   if ($d->Contents eq '') {
-      $d->Contents($ptext);
+   if ($self->{dlg}->{d}->Contents eq '') {
+      $self->{dlg}->{d}->Contents($ptext);
    }
 }
 
 sub flashText {
-   my $ftext = $d->Contents;
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   my $ftext = $self->{dlg}->{d}->Contents;
 
    if ($ftext eq '') {
       $ftext = generateText();
@@ -571,12 +670,15 @@ sub flashText {
 
    print "\nEnd of text flashing exercise\n\n";
 
-   if ($d->Contents eq '') {
-      $d->Contents($ftext);
+   if ($self->{dlg}->{d}->Contents eq '') {
+      $self->{dlg}->{d}->Contents($ftext);
    }
 }
 
 sub generateText {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    my $avgwordlength = ($e->{maxwordlength} + $e->{minwordlength}) / 2;
    ($avgwordlength > 1) or ($avgwordlength = 5);
   
@@ -586,7 +688,7 @@ sub generateText {
    my $text = '';
 
    for (my $i = 0; $i < $genwords; $i++) {
-      $text .= $twg->chooseWord . ' ';
+      $text .= $self->{twg}->chooseWord . ' ';
    }
 
 #  chop($text); # remove final blank 
@@ -594,73 +696,59 @@ sub generateText {
 }
 
 sub calibrate {
-   my $ex = Exercise->init($mdlg);
-   $ex->calibrate;
-}
-
+   my $self = shift;
+   $self->openStandardPlayer;
    # Play a standard tune-up message at "A" pitch and 20 wpm and -20dB amplitude
 
-#   open(MP, "|  perl $morseplayer " . join(' ', 20, 20, 440, $e->{playratefactor}, 3, 20, 10)) or die;
-#   autoflush MP, 1;
+   $self->writePlayer("000");
+   $self->closePlayer;
 
-#   print MP "000\n#\n";
-#   close(MP);
-
+   $self->openPlayer;
    # now play a standard message at the selected pitch and wpm 
-#   open(MP, "|  perl $morseplayer " . join(' ', $e->{wpm}, $e->{effwpm}, $e->{pitch}, $e->{playratefactor}, $e->{dashweight}, $e->{extrawordspaces}, $e->{attenuation}, $e->{pitchshift})) or die;
 
-#   autoflush MP, 1;
-
-#   print MP "paris paris\n#\n";
-#   close(MP);
-#}
+   $self->writePlayer("paris paris");
+   $self->closePlayer;
+}
 
 sub stopAuto {
-   $mdlg->stopusertextinput;
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
 
-   if (not $userabort) {
-      print MP "#\n";
-   } else {
-      open(PIDFILE, $mp2pidfile);
-      my $mp2pid = <PIDFILE>;
-      chomp($mp2pid);
+   $self->{dlg}->stopusertextinput;
+   $self->closePlayer($self->{abortpendingtime} > 0); # force if abort requested
 
-      kill('SIGTERM', $mp2pid); # ask player to terminate early
-      unlink($mp2pidfile);
-   }
-
-   close(MP);
-
-   syncflush();
-
-   if ($starttime > 0) {
+   if ($self->{starttime} > 0) {
       my $res = marktest();
 
       if (defined $res and $res->{nonblankcharcount} > 0) {
-         ResultsDialog::show($res, $mdlg);
-         $d->Contents($res->{focuswords}); # retain failed test words
-         $autoextraweights = $res->{focuschars};
+         ResultsDialog::show($res, $self->{dlg});
+         $self->{dlg}->{d}->Contents($res->{focuswords}); # retain failed test words
+         $e->{autoextraweights} = $res->{focuschars};
       } else {
-         $d->Contents(join ' ', @{$res->{testwordtext}});
+         $self->{dlg}->{d}->Contents(join ' ', @{$res->{testwordtext}});
       }
    }
 
-   $mdlg->setControlState('normal');
+   $self->{dlg}->setControlState('normal');
 
    if ($e->{dictsize} == 0) {
       $e->{dictsize} = 9999; # avoid lock ups 
    }
-
-   unlink($mp2readyfile) if -f $mp2readyfile;
 }
 
 sub autoweight {
-   my $xweights = $autoextraweights; 
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   my $xweights = $e->{autoextraweights}; 
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
    $e->{xweights} = $xweights;
 }
 
 sub syncflush {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    # Check that previous playing has finished so timings are accurate
    my $pollctr;
 
@@ -671,4 +759,6 @@ sub syncflush {
 
    unlink($mp2readyfile) if -f $mp2readyfile;
 }
+
+1;
 

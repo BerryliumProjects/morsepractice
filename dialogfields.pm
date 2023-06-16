@@ -34,6 +34,12 @@ sub entries {
    return $self->{entries};
 }
 
+sub control {
+   my $self = shift;
+   my $ctlvar = shift;
+   return $self->{controls}->{$ctlvar};
+}
+
 sub addEntryField {
    my $self = shift;
    my $ctllabel = shift;
