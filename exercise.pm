@@ -57,6 +57,7 @@ sub init {
    $self->{testwordcnt} = 0;
    $self->{userwordinput} = undef;
    $self->{MP} = undef;
+   $self->{running} = undef;
    return $self;
 }
 
@@ -173,6 +174,7 @@ my $d; #dummy###
 sub setexweights {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
 
    if ($e->{userelfreq}) {
       $e->{xweights} = TestWordGenerator->plainEnglishWeights($e->{keylist}); 
@@ -184,6 +186,7 @@ sub setexweights {
 sub prepareTest {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
 
    $e->{autoextraweights} = ''; 
 
@@ -243,7 +246,7 @@ sub prepareTest {
 }
 
 
-
+# make into a method?
 sub X_validateSettings {
 my ($d, $e); # dummy, sub will be removed later
    if (not $e->{minwordlength}) { # check if numeric and > 0
@@ -272,6 +275,8 @@ my ($d, $e); # dummy, sub will be removed later
 sub startAuto {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
+   $e->{running} = 1;
 
    $self->openPlayer();   
       
@@ -306,6 +311,7 @@ sub startAuto {
 sub abortAuto {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return unless $e->{running};
 
    $self->{abortpendingtime} = time();
    $self->{starttime} = time() unless defined $self->{starttime}; # ensure defined
@@ -317,6 +323,7 @@ sub checkchar {
    my $e = $self->{dlg}->{e};
 
    my $ch = shift;
+   return unless $e->{running};
 
    $self->{starttime} = time() unless defined $self->{starttime}; # count from first response
 
@@ -342,6 +349,7 @@ sub buildword {
    my $e = $self->{dlg}->{e};
 
    my $ch = shift;
+   return unless $e->{running};
 
    if ($ch eq "\b") {
       if ($e->{allowbackspace}) {
@@ -363,6 +371,7 @@ sub checkword {
    my $e = $self->{dlg}->{e};
 
    $self->{userwordinput} = shift;
+   return unless $e->{running};
 
    if ($e->{syncafterword}) {
       $self->syncflush;
@@ -625,6 +634,7 @@ sub marktest {
 sub playText {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
 
    my $ptext = $self->{dlg}->{d}->Contents;
 
@@ -644,6 +654,8 @@ sub playText {
 sub flashText {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
+   $e->{running} = 1;
 
    my $ftext = $self->{dlg}->{d}->Contents;
 
@@ -669,6 +681,7 @@ sub flashText {
    }
 
    print "\nEnd of text flashing exercise\n\n";
+   $e->{running} = undef;
 
    if ($self->{dlg}->{d}->Contents eq '') {
       $self->{dlg}->{d}->Contents($ftext);
@@ -678,6 +691,7 @@ sub flashText {
 sub generateText {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
 
    my $avgwordlength = ($e->{maxwordlength} + $e->{minwordlength}) / 2;
    ($avgwordlength > 1) or ($avgwordlength = 5);
@@ -713,6 +727,8 @@ sub calibrate {
 sub stopAuto {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return unless $e->{running};
+   $e->{running} = undef;
 
    $self->{dlg}->stopusertextinput;
    $self->closePlayer($self->{abortpendingtime} > 0); # force if abort requested
@@ -739,6 +755,7 @@ sub stopAuto {
 sub autoweight {
    my $self = shift;
    my $e = $self->{dlg}->{e};
+   return if $e->{running};
 
    my $xweights = $e->{autoextraweights}; 
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
