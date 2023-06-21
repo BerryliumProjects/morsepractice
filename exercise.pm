@@ -13,8 +13,6 @@ use IO::Handle;
 use Time::HiRes qw(time usleep);
 
 use lib '.';
-use charcodes;
-our %charcodes;
 
 #use dialogfields;
 use testwordgenerator;
@@ -130,12 +128,6 @@ sub writePlayer {
 }
 
 
-sub getCharCodes {
-   my $charcodes = join('', sort keys(%charcodes));
-   return $charcodes =~ s/ //; # remove blank
-}
-
-
 sub X_mainwindowcallback {
    my $id = shift; # name of control firing event
 my $d; #dummy###
@@ -246,9 +238,10 @@ sub prepareTest {
 }
 
 
-# make into a method?
-sub X_validateSettings {
-my ($d, $e); # dummy, sub will be removed later
+sub validateSettings {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
    if (not $e->{minwordlength}) { # check if numeric and > 0
       $e->{minwordlength} = 1;
    }
@@ -315,7 +308,7 @@ sub abortAuto {
 
    $self->{abortpendingtime} = time();
    $self->{starttime} = time() unless defined $self->{starttime}; # ensure defined
-   stopAuto(); 
+   $self->stopAuto();
 }
 
 sub checkchar {
@@ -333,14 +326,14 @@ sub checkchar {
 
    if ($ch ne '') { # ignore empty characters (e.g. pressing shift)
       if ($e->{maxwordlength} == 1 and $e->{syncafterword}) {
-         checkword(Word->createfromchar($ch));
+         $self->checkword(Word->createfromchar($ch));
       } else {
-         buildword($ch);
+         $self->buildword($ch);
       }
    }
 
    if ($self->{abortpendingtime}) {
-      stopAuto();
+      $self->stopAuto();
    }
 }
 
@@ -360,7 +353,7 @@ sub buildword {
       $self->{userwordinput}->append($ch);
 
       if ($self->{userwordinput}->{complete}) {
-         checkword($self->{userwordinput});
+         $self->checkword($self->{userwordinput});
          $self->{userwordinput} = Word->new;
       }
    }
@@ -588,7 +581,7 @@ sub marktest {
    foreach (@testwordix) {
       last unless defined $self->{userwords}->[$_];
       # analyse word characters
-      markword($self->{userwords}->[$_], $testwords[$_], $r);
+      $self->markword($self->{userwords}->[$_], $testwords[$_], $r);
    }
 
    # summary of test with corrections shown
@@ -639,7 +632,7 @@ sub playText {
    my $ptext = $self->{dlg}->{d}->Contents;
 
    if ($ptext eq '') {
-      $ptext = generateText();
+      $ptext = $self->generateText();
    }
 
    $self->openPlayer(1); # multi-line text mode
@@ -660,7 +653,7 @@ sub flashText {
    my $ftext = $self->{dlg}->{d}->Contents;
 
    if ($ftext eq '') {
-      $ftext = generateText();
+      $ftext = $self->generateText();
    }
 
    my $semichartime = 60.0 / 6 / 2 / $e->{effwpm};
@@ -734,7 +727,7 @@ sub stopAuto {
    $self->closePlayer($self->{abortpendingtime} > 0); # force if abort requested
 
    if ($self->{starttime} > 0) {
-      my $res = marktest();
+      my $res = $self->marktest();
 
       if (defined $res and $res->{nonblankcharcount} > 0) {
          ResultsDialog::show($res, $self->{dlg});

@@ -1,4 +1,6 @@
-our %charcodes = (
+package CharCodes;
+
+my %charcodes = (
    
    a=>'.- ',
    b=>'-... ',
@@ -44,5 +46,17 @@ our %charcodes = (
    ':'=>'---... ',
    ' '=>'  ', 
 );
+
+sub getCharCodes {
+   return \%charcodes;
+}
+
+
+sub getChars {
+   my $ch = join('', sort keys(%charcodes));
+   $ch =~ s/ //; # remove blank
+   return $ch;
+}
+
 
 1;

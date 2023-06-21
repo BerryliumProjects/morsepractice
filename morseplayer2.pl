@@ -10,6 +10,8 @@ use charcodes;  # definitions of characters as dit-dah sequences
 
 use warnings;
 
+%charcodes = %{CharCodes::getCharCodes()};
+
 my $mp2readyfile = '/var/tmp/mp2ready.txt'; 
 my $mp2statsfile = '/var/tmp/mp2stats.txt';
 my $mp2pidfile = '/var/tmp/mp2pid.txt';

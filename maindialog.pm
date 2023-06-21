@@ -13,20 +13,19 @@ use Tk::After;
 
 use lib '.';
 use dialogfields;
+use exercise;
+use charcodes;
 
 sub init {
    my $class = shift;
-   my $callback = shift;
-
    my $self = {};
    bless($self, $class);
 
    $self->{w} = MainWindow->new();
 
    $self->{w}->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
-## experimental - will kill all functionality except calibrate !!!
-#   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},sub{mainwindowcallback($self, @_)},300);
-   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},sub{&$callback($self,@_)},300);
+
+   my $mwdf = $self->{mwdf} = DialogFields->init($self->{w},sub{mainwindowcallback($self, @_)},300);
    $self->{e} = $mwdf->entries; # gridframe control values
 
    my $lb = $mwdf->addListboxField('Exercise type', 'exercisetype', 40, '');
@@ -40,7 +39,8 @@ sub init {
    $lb->insert('end', 'QSO phrases');
    $lb->insert('end', 'Numbers');
 
-   $mwdf->addEntryField('Characters to practise', 'keylist', 40, '', undef, sub{&{$mwdf->{callback}}('setexweights')});
+   my $chars = CharCodes::getChars();
+   $mwdf->addEntryField('Characters to practise', 'keylist', 40, $chars, undef, sub{mainwindowcallback($self, 'setexweights')});
    $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
    $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
    $mwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
@@ -58,7 +58,7 @@ sub init {
    $mwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
    $mwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
    $mwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{&{$mwdf->{callback}}('setexweights')});
+   $mwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{mainwindowcallback($self, 'setexweights')});
    $mwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
    $mwdf->addCheckbuttonField2('Character reaction times', 'measurecharreactions',  1);
    $mwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  1);
@@ -88,6 +88,13 @@ sub init {
    $mwdf->addButtonField('Finish', 'finish',  'f');
    $mwdf->addButtonField('Quit', 'quit',  'q', sub{$self->{w}->destroy});
 
+   $mwdf->addHiddenField('Running', 'running', 0);
+   $mwdf->addHiddenField('AutoExtraWeights', 'autoextraweights', '');
+
+   $self->{ex} = Exercise->init($self); # this will move to ExerciseDialog
+   $self->{ex}->validateSettings();
+   $self->{ex}->setexweights();
+
    return $self;
 }
 
@@ -99,7 +106,7 @@ sub show {
 sub startusertextinput {
    my $self = shift;
 
-   $self->{d}->bind('<KeyPress>', [\&exercisekeyentered, Ev('A'), $self->{mwdf}]); # automatically supplies a reference to $d as first argument
+   $self->{d}->bind('<KeyPress>', [\&exercisekeyentered, Ev('A'), $self]); # automatically supplies a reference to $d as first argument
 }
 
 sub stopusertextinput {
@@ -111,9 +118,8 @@ sub stopusertextinput {
 sub exercisekeyentered {
    my $obj = shift; # automatically supplied reference to callback sender
    my $ch = shift;
-   my $mwdf = shift;
-   my $callback = $mwdf->{callback};
-   &$callback('exercisekey', $ch);
+   my $self = shift;
+   mainwindowcallback($self, 'exercisekey', $ch);
 }
 
 sub setControlState {
@@ -123,6 +129,7 @@ sub setControlState {
    my $mwdf = $self->{mwdf};
 
    foreach my $k (keys(%{$self->{e}})) {
+if (!defined($mwdf->{attr}->{$k})) {print "Attributes undefined for '$k'\n"};
       if (($mwdf->{attr}->{$k} =~ /entry|checkbutton/) and not($mwdf->{attr}->{$k} =~ /locked/)) {
          $mwdf->{controls}->{$k}->configure(-state=>$state);
       }
@@ -145,37 +152,39 @@ sub setControlState {
 sub mainwindowcallback {
    my $self = shift;
    my $id = shift; # name of control firing event
+   my $ex = $self->{ex};
 
    if ($id eq 'exercisekey') {
       my $ch = shift;
-      checkchar($ch);
+      $ex->checkchar($ch);
    } elsif ($id eq 'next') {
       runexercise();
    } elsif ($id eq 'setexweights') {
-      setexweights();
+      $ex->setexweights();
    } elsif ($id eq 'calibrate') {
-      my $ex = Exercise->init($self);
+#      my $ex = Exercise->init($self);
       $ex->calibrate;
    } elsif ($id eq 'autoweight') {
-      autoweight();
+      $ex->autoweight();
    } elsif ($id eq 'generate') {
-      validateSettings();
-      prepareTest();
-#      $d->Contents(generateText());
+      $ex->validateSettings();
+      $ex->prepareTest();
+      my $d = $self->{mwdf}->control('exercisetext');
+      $d->Contents($ex->generateText());
    } elsif ($id eq 'play') {
-      validateSettings();
-      prepareTest();
-      playText();
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->playText();
    } elsif ($id eq 'flash') {
-      validateSettings();
-      prepareTest();
-      flashText();
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->flashText();
    } elsif ($id eq 'start') {
-      validateSettings();
-      prepareTest();
-      startAuto();
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->startAuto();
    } elsif ($id eq 'finish') {
-      abortAuto();
+      $ex->abortAuto();
    }
 }
 
