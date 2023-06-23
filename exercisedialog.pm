@@ -9,42 +9,41 @@ use Tk::ROText;
 use Tk::DialogBox;
 
 use Data::Dumper;
-our $e;
-our $xwdf;
-our $xw;
+use Tk::After;
+
+use lib '.';
+use dialogfields;
+use exercise;
+use charcodes;
 
 sub show {
-   my $extype = shift;
+   my $class = shift;
+   my $self = {};
+   bless($self, $class);
    my $mdlg = shift;
 
-   my $buttons = ['Start', 'Finish', 'Done', 'Cancel']; 
+   my $buttons = ['Start', 'Finish', 'Done', 'Cancel'];
+   my $extype = $mdlg->{e}->{exercisetype};
 
-   $xw = $mdlg->{w}->DialogBox(-title=>"Morse Practice - $extype", -buttons=>$buttons); # exercise window
-   $xwdf = DialogFields->init($xw);
-   $e = $xwdf->entries;
+####### up to here: make following into object properties as well as locals
+   $self->{w} = $mdlg->{w}->DialogBox(-title=>"Morse Practice - $extype", -buttons=>$buttons); # exercise window
 
-   if ($extype eq 'Single characters') {
-      $xwdf->addEntryField('Characters to practise', 'keylist', 40);
-      $xwdf->addEntryField('Extra character weights', 'xweights', 40);
-   } elsif ($extype eq 'Random sequences') {
-      $xwdf->addEntryField('Characters to practise', 'keylist', 40);
-      $xwdf->addEntryField('Extra character weights', 'xweights', 40);
-   } elsif ($extype eq 'Pseudo words') {
-   } elsif ($extype eq 'Callsigns') {
-      $e->{usescalls} = 1;
-      $xwdf->addCheckbuttonField('Use complex callsigns', 'useicalls');
-      $xwdf->addCheckbuttonField('European prefixes', 'europrefix');
-   } elsif ($extype eq 'Common words') {
-   } elsif ($extype eq 'Dictionary words') {
-      $xwdf->addEntryField('Word list size', 'wordlistsize', 40);
-      $xwdf->addEntryField('Dictionary sample size', 'dictsize', 40);
-      $xwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40);
-   } elsif ($extype eq 'QSO terms') {
-   } elsif ($extype eq 'QSO phrases') {
-   } elsif ($extype eq 'Numbers') {
-   }
+#   $self->{w}->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
 
+   my $xwdf = $self->{xwdf} = DialogFields->init($self->{w},sub{$self->mainwindowcallback(@_)},300);
+   my $e = $self->{e} = $xwdf->entries; # gridframe control values
+
+   my $chars = CharCodes::getChars();
+   $xwdf->addEntryField('Characters to practise', 'keylist', 40, $chars, undef, sub{$self->mainwindowcallback('setexweights')});
+   $xwdf->addEntryField('Extra character weights', 'xweights', 40, '');
+   $xwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
+   $xwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
    $xwdf->addEntryField('Effective WPM', 'effwpm', 40, 20);
+   $xwdf->addEntryField('Note pitch', 'pitch', 40, 600);
+   $xwdf->addEntryField('Tone volume attenuation (dB)', 'attenuation', 40, '10');
+   $xwdf->addEntryField('Dash-dot pitch shift (semitones)', 'pitchshift', 40, '0');
+   $xwdf->addEntryField('Playing rate factor', 'playratefactor', 40, '1.00');
+   $xwdf->addEntryField('Dash weight', 'dashweight', 40, 3);
    $xwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
    $xwdf->addEntryField('Max word length', 'maxwordlength', 40, 6);
    $xwdf->addEntryField('Extra word spaces', 'extrawordspaces', 40, 0);
@@ -53,7 +52,7 @@ sub show {
    $xwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
    $xwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
    $xwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $xwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{&{$xwdf->{callback}}('setexweights')});
+   $xwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{$self->mainwindowcallback('setexweights')});
    $xwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
    $xwdf->addCheckbuttonField2('Character reaction times', 'measurecharreactions',  1);
    $xwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  1);
@@ -62,10 +61,33 @@ sub show {
    $xwdf->addCheckbuttonField2('Use English dictionary words', 'useedict',  0);
    $xwdf->addCheckbuttonField('Use phonemes', 'usephonemes',  0);
    $xwdf->addCheckbuttonField2('Use hundred common words', 'usehdict',  0);
+   $xwdf->addCheckbuttonField('Use standard callsigns', 'usescalls',  0);
    $xwdf->addCheckbuttonField2('Use specified words', 'usespecified',  0);
+   $xwdf->addCheckbuttonField('Use complex callsigns', 'useicalls',  0);
    $xwdf->addCheckbuttonField2('Use QSO terms', 'useqdict',  0);
+   $xwdf->addCheckbuttonField('European prefixes', 'europrefix',  1);
    $xwdf->addCheckbuttonField2('Use QSO phrases', 'useqphrases',  0);
-      
+
+   $self->{d} = $xwdf->addWideTextField(undef, 'exercisetext', 10, 75, '');
+   $self->{d}->focus;
+
+   # buttons use callback by default
+#   $xwdf->addButtonField('Next', 'next',  'n');
+#   $xwdf->addButtonField('Calibrate', 'calibrate',  'c');
+#   $xwdf->addButtonField('AutoWeight', 'autoweight',  'u');
+#   $xwdf->addButtonField('Generate', 'generate',  'g');
+#   $xwdf->addButtonField('Play', 'play',  'p');
+#   $xwdf->addButtonField('Flash', 'flash',  'h');
+#   $xwdf->addButtonField('Start', 'start',  's');
+#   $xwdf->addButtonField('Finish', 'finish',  'f');
+#   $xwdf->addButtonField('Quit', 'quit',  'q', sub{$self->{w}->destroy});
+
+   $xwdf->addHiddenField('Running', 'running', 0);
+   $xwdf->addHiddenField('AutoExtraWeights', 'autoextraweights', '');
+
+   $self->{ex} = Exercise->init($self); # this will move to ExerciseDialog
+   $self->{ex}->validateSettings();
+   $self->{ex}->setexweights();
    # import default or previously set values
    foreach my $i (keys(%{$e})) {
       if (defined $mdlg->{e}->{$i}) {
@@ -73,13 +95,13 @@ sub show {
       }
    }
 
-   my $startbutton = $xw->Subwidget('B_Start');
-   $startbutton->configure(-command => sub{startexercise()});
-   my $finishbutton = $xw->Subwidget('B_Finish');
-   $finishbutton->configure(-command => sub{finishexercise()});
-   setControlState('normal');
+   my $startbutton = $self->{w}->Subwidget('B_Start');
+   $startbutton->configure(-command => sub{$self->startexercise()});
+   my $finishbutton = $self->{w}->Subwidget('B_Finish');
+   $finishbutton->configure(-command => sub{$self->finishexercise()});
+   $self->setControlState('normal');
 
-   my $button = $xw->Show;
+   my $button = $self->{w}->Show;
 
    if ($button eq 'Done') {
       # save local changes with main dialog state
@@ -88,21 +110,87 @@ sub show {
       }
    }
 
+   return $self;
+}
+
+
+sub startusertextinput {
+   my $self = shift;
+
+   $self->{d}->bind('<KeyPress>', [\&exercisekeyentered, Ev('A'), $self]); # automatically supplies a reference to $d as first argument
+}
+
+sub stopusertextinput {
+   my $self = shift;
+
+   $self->{d}->bind('<KeyPress>', undef);
+}
+
+sub exercisekeyentered {
+   my $obj = shift; # automatically supplied reference to callback sender
+   my $ch = shift;
+   my $self = shift;
+   $self->mainwindowcallback('exercisekey', $ch);
+}
+
+
+sub mainwindowcallback {
+   my $self = shift;
+   my $id = shift; # name of control firing event
+   my $ex = $self->{ex};
+
+   if ($id eq 'exercisekey') {
+      my $ch = shift;
+      $ex->checkchar($ch);
+   } elsif ($id eq 'next') {
+      runexercise();
+   } elsif ($id eq 'setexweights') {
+      $ex->setexweights();
+   } elsif ($id eq 'calibrate') {
+#      my $ex = Exercise->init($self);
+      $ex->calibrate;
+   } elsif ($id eq 'autoweight') {
+      $ex->autoweight();
+   } elsif ($id eq 'generate') {
+      $ex->validateSettings();
+      $ex->prepareTest();
+      my $d = $self->{xwdf}->control('exercisetext');
+      $d->Contents($ex->generateText());
+   } elsif ($id eq 'play') {
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->playText();
+   } elsif ($id eq 'flash') {
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->flashText();
+   } elsif ($id eq 'start') {
+      $ex->validateSettings();
+      $ex->prepareTest();
+      $ex->startAuto();
+   } elsif ($id eq 'finish') {
+      $ex->abortAuto();
+   }
 }
 
 sub startexercise {
+   my $self = shift;
    print "Start button clicked\n";
-   setControlState('disabled');
+   $self->setControlState('disabled');
 }
 
 sub finishexercise {
+   my $self = shift;
    print "Finish button clicked\n";
-   setControlState('normal');
+   $self->setControlState('normal');
    print "End of activity\n";
-} 
+}
 
 sub setControlState {
+   my $self = shift;
    my $state = shift;
+   my $xwdf = $self->{xwdf};
+   my $e = $self->{e};
 
    foreach my $k (keys(%{$e})) {
       if (($xwdf->{attr}->{$k} =~ /entry|checkbutton/) and not($xwdf->{attr}->{$k} =~ /locked/)) {
@@ -110,15 +198,20 @@ sub setControlState {
       }
    }
 
-   $xw->Subwidget('B_Start')->configure(-state=>$state);
-   $xw->Subwidget('B_Done')->configure(-state=>$state);
-   $xw->Subwidget('B_Cancel')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Start')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Done')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Cancel')->configure(-state=>$state);
+#   $xwdf->{controls}->{calibrate}->configure(-state=>$state);
+#   $xwdf->{controls}->{autoweight}->configure(-state=>$state);
+#   $xwdf->{controls}->{generate}->configure(-state=>$state);
+#   $xwdf->{controls}->{play}->configure(-state=>$state);
+#   $xwdf->{controls}->{start}->configure(-state=>$state);
 
    # enable Finish button only during an exercise
    if ($state eq 'disabled') {
-       $xw->Subwidget('B_Finish')->configure(-state=>'normal');
+       $self->{w}->Subwidget('B_Finish')->configure(-state=>'normal');
    } else {
-       $xw->Subwidget('B_Finish')->configure(-state=>'disabled');
+       $self->{w}->Subwidget('B_Finish')->configure(-state=>'disabled');
    }
 }
 

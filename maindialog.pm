@@ -158,7 +158,7 @@ sub mainwindowcallback {
       my $ch = shift;
       $ex->checkchar($ch);
    } elsif ($id eq 'next') {
-      runexercise();
+      ExerciseDialog->show($self);
    } elsif ($id eq 'setexweights') {
       $ex->setexweights();
    } elsif ($id eq 'calibrate') {
