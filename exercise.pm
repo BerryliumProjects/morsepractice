@@ -294,7 +294,7 @@ sub startAuto {
    if ($e->{syncafterword}) {   
       $self->writePlayer($self->{twg}->chooseWord);
    } else {
-      my $testtext = generateText();
+      my $testtext = $self->generateText();
       my @testtext = split(/ /, $testtext);     
       $self->{testwordcount} = scalar(@testtext); # target word count
       $self->writePlayer($testtext);
@@ -684,7 +684,6 @@ sub flashText {
 sub generateText {
    my $self = shift;
    my $e = $self->{dlg}->{e};
-   return if $e->{running};
 
    my $avgwordlength = ($e->{maxwordlength} + $e->{minwordlength}) / 2;
    ($avgwordlength > 1) or ($avgwordlength = 5);
