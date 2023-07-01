@@ -22,7 +22,7 @@ sub show {
    bless($self, $class);
    my $mdlg = shift;
 
-   my $buttons = ['Start', 'Finish', 'Done', 'Cancel'];
+   my $buttons = ['Generate', 'AutoWeight', 'Play', 'Flash', 'Start', 'Finish', 'Done', 'Cancel'];
    my $extype = $mdlg->{e}->{exercisetype};
 
 ####### up to here: make following into object properties as well as locals
@@ -30,11 +30,11 @@ sub show {
 
 #   $self->{w}->fontCreate('msgbox',-family=>'helvetica', -size=>-14);
 
-   my $xwdf = $self->{xwdf} = DialogFields->init($self->{w},sub{$self->mainwindowcallback(@_)},300);
+   my $xwdf = $self->{xwdf} = DialogFields->init($self->{w},sub{$self->exwindowcallback(@_)},300);
    my $e = $self->{e} = $xwdf->entries; # gridframe control values
 
    my $chars = CharCodes::getChars();
-   $xwdf->addEntryField('Characters to practise', 'keylist', 40, $chars, undef, sub{$self->mainwindowcallback('setexweights')});
+   $xwdf->addEntryField('Characters to practise', 'keylist', 40, $chars, undef, sub{$self->exwindowcallback('setexweights')});
    $xwdf->addEntryField('Extra character weights', 'xweights', 40, '');
    $xwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);
    $xwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
@@ -52,7 +52,7 @@ sub show {
    $xwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
    $xwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);
    $xwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
-   $xwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{$self->mainwindowcallback('setexweights')});
+   $xwdf->addCheckbuttonField2('Use relative frequencies', 'userelfreq',  0, undef, sub{$self->exwindowcallback('setexweights')});
    $xwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
    $xwdf->addCheckbuttonField2('Character reaction times', 'measurecharreactions',  1);
    $xwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  1);
@@ -95,10 +95,17 @@ sub show {
       }
    }
 
-   my $startbutton = $self->{w}->Subwidget('B_Start');
-   $startbutton->configure(-command => sub{$self->startexercise()});
-   my $finishbutton = $self->{w}->Subwidget('B_Finish');
-   $finishbutton->configure(-command => sub{$self->finishexercise()});
+   # set up button callbacks
+   foreach my $bname (qw/Generate AutoWeight Play Flash Start Finish/) {
+      my $bcontrol = $self->{w}->Subwidget("B_$bname");
+      die "No control for $bname\n" unless defined($bcontrol);
+      $bcontrol->configure(-command => sub{$self->exwindowcallback(lc($bname))});
+   }
+
+#   my $startbutton = $self->{w}->Subwidget('B_Start');
+#   $startbutton->configure(-command => sub{$self->startexercise()});
+#   my $finishbutton = $self->{w}->Subwidget('B_Finish');
+#   $finishbutton->configure(-command => sub{$self->finishexercise()});
    $self->setControlState('normal');
 
    my $button = $self->{w}->Show;
@@ -130,11 +137,11 @@ sub exercisekeyentered {
    my $obj = shift; # automatically supplied reference to callback sender
    my $ch = shift;
    my $self = shift;
-   $self->mainwindowcallback('exercisekey', $ch);
+   $self->exwindowcallback('exercisekey', $ch);
 }
 
 
-sub mainwindowcallback {
+sub exwindowcallback {
    my $self = shift;
    my $id = shift; # name of control firing event
    my $ex = $self->{ex};
@@ -201,11 +208,10 @@ sub setControlState {
    $self->{w}->Subwidget('B_Start')->configure(-state=>$state);
    $self->{w}->Subwidget('B_Done')->configure(-state=>$state);
    $self->{w}->Subwidget('B_Cancel')->configure(-state=>$state);
-#   $xwdf->{controls}->{calibrate}->configure(-state=>$state);
-#   $xwdf->{controls}->{autoweight}->configure(-state=>$state);
-#   $xwdf->{controls}->{generate}->configure(-state=>$state);
-#   $xwdf->{controls}->{play}->configure(-state=>$state);
-#   $xwdf->{controls}->{start}->configure(-state=>$state);
+   $self->{w}->Subwidget('B_AutoWeight')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Generate')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Play')->configure(-state=>$state);
+   $self->{w}->Subwidget('B_Flash')->configure(-state=>$state);
 
    # enable Finish button only during an exercise
    if ($state eq 'disabled') {
