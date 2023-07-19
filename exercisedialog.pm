@@ -54,9 +54,12 @@ sub show {
    if ($extype =~ /Random|Pseudo|Common|Dictionary|Numbers|QSO terms/) {
       $xwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
       $xwdf->addEntryField('Max word length', 'maxwordlength', 40, 6);
-   } else { # material for single characters, ignored for QSO phrases and callsigns
+   } elsif ($extype =~ 'Single') {
       $xwdf->addHiddenField('Min word length', 'minwordlength', 1);
       $xwdf->addHiddenField('Max word length', 'maxwordlength', 1);
+   } else { # ignored but max word length must be > 1
+      $xwdf->addHiddenField('Min word length', 'minwordlength', 9);
+      $xwdf->addHiddenField('Max word length', 'maxwordlength', 9);
    }
 
    if ($extype eq 'Dictionary words') {
