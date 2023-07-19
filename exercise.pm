@@ -237,6 +237,15 @@ sub prepareTest {
    
 }
 
+sub validateAudioSettings {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+
+   if ($e->{pitchshift} eq '') {
+      $e->{pitchshift} = 0;
+   }
+}
+
 
 sub validateSettings {
    my $self = shift;
@@ -257,14 +266,9 @@ sub validateSettings {
    unless ($e->{practicetime} =~ /^[\d\.]+$/ and $e->{practicetime} > 0){
       $e->{practicetime} = 2;
    }
-
-   if ($e->{pitchshift} eq '') {
-      $e->{pitchshift} = 0;
-   }
 }
 
 
-   
 sub startAuto {
    my $self = shift;
    my $e = $self->{dlg}->{e};
