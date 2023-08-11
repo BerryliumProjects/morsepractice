@@ -336,5 +336,35 @@ sub plainEnglishWeights {
    return $xweights;
 }
 
-1;
+sub addSpecified {
+   my $self = shift;
+   my $probability = shift; # chance that a specified word will be picked
+   my @specwords = @_; # all remaining arguments
+   my $specwordcnt = scalar @specwords;
 
+   return if ($specwordcnt < 1);
+   return if ($probability <= 0);
+
+   my $repeats = 1;
+
+   if ($self->{size} > 0) {
+      if ($probability > 0.9) {
+         $probability = 0.9; # don't grow list by more than 10 times
+      }
+
+      my $extrawords = $self->{size} * $probability / (1 - $probability);
+      $repeats = int($extrawords / $specwordcnt + 0.5);
+
+      if ($repeats < 1) {
+         $repeats = 1;  # ensure at least some specified words are included
+      }
+   }
+
+   for (my $rcnt = 0; $rcnt < $repeats; $rcnt++) {
+      for (my $wordx = 0; $wordx < $specwordcnt; $wordx++) {
+         $self->addWord($specwords[$wordx]);
+      }
+   }
+}
+
+1;

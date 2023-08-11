@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>14;
+use Test::Simple tests=>15;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -33,8 +33,12 @@ ok ($words[1] ne $words[2], 'Word was not duplicated');
 
 $w->addDictionary('qsowordlist.txt',0,5);
 
+ok ($w->{size} == 8, '8 added from qsowordlist');
+
+$w->addSpecified(0.5, 'ypp', 'ypq', 'ypr', 'yps');
+ok ($w->{size} == 16, 'specified words weighted to 50% of total');
+
 print Dumper $w;
-ok ($w->{size} == 8, '5 added from qsowordlist');
 
 $w = TestWordGenerator->new(4,8);
 $w->addPseudo (10000);

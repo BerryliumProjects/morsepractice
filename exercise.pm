@@ -223,9 +223,9 @@ sub prepareTest {
    }
 
    if ($e->{usespecified}) {
-      foreach (split(/\s+/, $self->{dlg}->{d}->Contents)) {
-         $self->{twg}->addWord($_);
-      }
+      my @specwords = split(/\s+/, $self->{dlg}->{d}->Contents);
+      my $probability = 0.3;
+      $self->{twg}->addSpecified($probability, @specwords);
    }
 
    if ($self->{twg}->{size} < 1) {
