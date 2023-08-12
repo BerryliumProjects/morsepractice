@@ -283,7 +283,7 @@ sub addListboxField {
    return $entryctl;
 }
 
-# following is to allow some entities to be controlled only by the program rather than the user
+# following is to allow some entities to be controlled only by the program rather than the user. If the named field already exists, it is not replaced
 
 sub addHiddenField {
    my $self = shift;
@@ -291,6 +291,8 @@ sub addHiddenField {
    my $ctlvar = shift;
    my $initvalue = shift;
    my $attributes = shift;
+
+   return if (defined $self->{attr}->{ctlvar});
 
    (defined $attributes) or ($attributes = '');
 
