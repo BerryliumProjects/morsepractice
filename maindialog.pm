@@ -32,6 +32,7 @@ sub init {
    my $lb = $mwdf->addListboxField('Exercise type', 'exercisetype', 40, '');
    $lb->insert('end', 'Single characters');
    $lb->insert('end', 'Random sequences');
+   $lb->insert('end', 'Phonemes');
    $lb->insert('end', 'Pseudo words');
    $lb->insert('end', 'Numbers');
    $lb->insert('end', 'Callsigns');

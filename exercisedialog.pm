@@ -51,7 +51,7 @@ sub show {
       $xwdf->addHiddenField('Extra character weights', 'xweights', '');
    }
 
-   if ($extype =~ /Random|Pseudo|Common|Dictionary|Numbers|QSO terms/) {
+   if ($extype =~ /Random|Phoneme|Pseudo|Common|Dictionary|Numbers|QSO terms/) {
       $xwdf->addEntryField('Min word length', 'minwordlength', 40, 1);
       $xwdf->addEntryField('Max word length', 'maxwordlength', 40, 6);
    } elsif ($extype =~ 'Single') {
@@ -96,7 +96,7 @@ sub show {
    $xwdf->addHiddenField('Use phonemes', 'usephonemes',  0);
    $xwdf->addHiddenField('Use hundred common words', 'usehdict',  0);
 
-   if ($extype =~ /words|terms/) {
+   if ($extype =~ /words|terms|Phoneme/) {
       $xwdf->addCheckbuttonField('Use specified words', 'usespecified',  0);
    } else {
       $xwdf->addHiddenField('Use specified words', 'usespecified',  0);
