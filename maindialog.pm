@@ -43,7 +43,7 @@ sub init {
    $lb->selectionSet(0);
    $self->{e}->{exercisetype} = 'Single characters';
 
-   my $chars = CharCodes::getChars();
+#   my $chars = CharCodes::getChars();
 #   $mwdf->addEntryField('Characters to practise', 'keylist', 40, $chars, undef, sub{mainwindowcallback($self, 'setexweights')});
 #   $mwdf->addEntryField('Extra character weights', 'xweights', 40, '');
 #   $mwdf->addEntryField('Practice session time (mins)', 'practicetime', 40, 2);

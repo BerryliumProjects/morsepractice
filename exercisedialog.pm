@@ -35,7 +35,7 @@ sub show {
    my $xwdf = $self->{xwdf} = DialogFields->init($self->{w},sub{$self->exwindowcallback(@_)},300);
    my $e = $self->{e} = $xwdf->entries; # gridframe control values
 
-   my $chars = CharCodes::getChars();
+   my $chars = CharCodes::getCharsKochOrder();
 
    if ($extype eq 'Numbers') {
       $chars = '0123456789.r';

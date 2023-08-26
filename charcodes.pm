@@ -58,5 +58,9 @@ sub getChars {
    return $ch;
 }
 
+sub getCharsKochOrder {
+   return 'kmrsuaptlowi.njef0y,vg5/q9zh38b?427c1d6xi:';
+}
+
 
 1;
