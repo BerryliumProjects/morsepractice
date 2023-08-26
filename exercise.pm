@@ -381,6 +381,7 @@ sub checkword {
 
          if (($userword ne $testword) and $e->{retrymistakes}) {
             $self->{dlg}->{d}->insert('end', '# ');
+            $testword = $self->{twg}->chooseWord(1); # extra retry
          } else {
             $testword = $self->{twg}->chooseWord;
          }

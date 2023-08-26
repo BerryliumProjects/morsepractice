@@ -12,7 +12,7 @@ sub new {
 
    $repeats = 0 unless defined($repeats);
 
-   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, repeats => $repeats, size => 0, queue => [], prevword => ''};
+   my $self = {testwords => [], minlength => $minlength, maxlength => $maxlength, repeats => $repeats, size => 0, queue => [], prevword => '', extrarepeatgiven => 0};
    bless($self, $class);
    return $self;
 }
@@ -283,6 +283,7 @@ sub readElements {
 
 sub chooseWord {
    my $self = shift;
+   my $extraretry = shift;
 
    my $prevword = $self->{prevword};
    my $word;
@@ -291,8 +292,14 @@ sub chooseWord {
    ($self->{size} > 0) or
       return '='; # default if list is empty
 
+   if ($extraretry and not $self->{extrarepeatgiven}) {
+      $self->{extrarepeatgiven} = 1; # only 1 extra repeat granted
+      return $prevword;
+   }
+
    if (@{$self->{queue}} == 0) {
       my $phrase = '';
+      $self->{extrarepeatgiven} = 0;
 
       for (1 .. $maxtries) {
          $phrase = $self->{testwords}->[int(rand($self->{size} - 0.0001))];
