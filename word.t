@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>38;
+use Test::Simple tests=>39;
 use word;
 use Data::Dumper;
 
@@ -48,6 +48,8 @@ ok($w1->wordtext eq '_ab__', 'Align inserts placeholders at start');
 $w1->align('_avbxx');
 ok($w1->wordtext eq '_a_b__', 'Align inserts placeholders in middle');
 
+$w2 = Word->createfromchar(' '); # user aborted attempt
+ok ($w2->{complete}, 'Single letter word from space is complete');
 
 $w2 = Word->createfromchar('x'); # one letter word
 ok($w2->{complete}, 'Single letter word is complete');
