@@ -15,7 +15,6 @@ use lib '.';
 use dialogfields;
 use exercisedialog;
 use exercise;
-use charcodes;
 
 sub init {
    my $class = shift;
