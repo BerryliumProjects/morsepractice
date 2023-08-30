@@ -35,7 +35,7 @@ sub show {
    my $xwdf = $self->{xwdf} = DialogFields->init($self->{w},sub{$self->exwindowcallback(@_)},300);
    my $e = $self->{e} = $xwdf->entries; # gridframe control values
 
-   my $chars = CharCodes->getCharsKochOrder(0);
+   my $chars = CharCodes->getChars();
 
    if ($extype eq 'Numbers') {
       $chars = '0123456789.r';
@@ -49,6 +49,12 @@ sub show {
    } else {
       $xwdf->addHiddenField('Characters to practise', 'keylist', '' );
       $xwdf->addHiddenField('Extra character weights', 'xweights', '');
+   }
+
+   if ($extype =~ /Single|Random/) {
+      $xwdf->addEntryField('Koch method level', 'kochlevel', 40, 0, undef, sub{$self->exwindowcallback('setkochlevel')});
+   } else {
+      $xwdf->addHiddenField('Koch method level', 'kochlevel', 0);
    }
 
    if ($extype =~ /Random|Phoneme|Pseudo|Common|Dictionary|Numbers|QSO terms/) {
@@ -222,6 +228,8 @@ sub exwindowcallback {
       runexercise();
    } elsif ($id eq 'setexweights') {
       $ex->setexweights();
+   } elsif ($id eq 'setkochlevel') {
+      $ex->setkochlevel();
    } elsif ($id eq 'calibrate') {
 #      my $ex = Exercise->init($self);
       $ex->calibrate;

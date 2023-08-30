@@ -163,13 +163,31 @@ my $d; #dummy###
    }
 }
 
+sub setkochlevel {
+   my $self = shift;
+   my $e = $self->{dlg}->{e};
+   return if $e->{running};
+
+   $e->{keylist} = CharCodes->getCharsKochOrder($e->{kochlevel});
+
+   if ($e->{kochlevel} > 1 and $e->{userelfreq}) {
+      $e->{xweights} = CharCodes->getKochWeights($e->{kochlevel});
+   } else {
+      $self->setexweights();
+   }
+}
+
 sub setexweights {
    my $self = shift;
    my $e = $self->{dlg}->{e};
    return if $e->{running};
 
    if ($e->{userelfreq}) {
-      $e->{xweights} = TestWordGenerator->plainEnglishWeights($e->{keylist}); 
+      if ($e->{kochlevel} > 1) {
+         $e->{xweights} = CharCodes->getKochWeights($e->{kochlevel});
+      } else {
+         $e->{xweights} = TestWordGenerator->plainEnglishWeights($e->{keylist});
+      }
    } else {
       $e->{xweights} = '';
    }
