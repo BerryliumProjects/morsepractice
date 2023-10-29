@@ -294,11 +294,12 @@ sub addHiddenField {
 
    return if (defined $self->{attr}->{ctlvar});
 
-   (defined $attributes) or ($attributes = '');
-
    $self->{entries}->{$ctlvar} = $initvalue;
+   $self->{attr}->{$ctlvar} = "";
 
-   $self->{attr}->{$ctlvar} = "hidden $attributes ";
+   if (defined $attributes) {
+      $self->{attr}->{$ctlvar} = "$attributes ";
+   }
 
    return;
 }

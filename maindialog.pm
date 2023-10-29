@@ -98,6 +98,7 @@ sub init {
 #   $self->{ex}->validateAudioSettings();
 #   $self->{ex}->setexweights();
 
+   $mwdf->addHiddenField('', 'prev_extype', '');
    return $self;
 }
 
