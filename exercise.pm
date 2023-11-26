@@ -127,42 +127,6 @@ sub writePlayer {
    print {$self->{MP}} "$text\n";
 }
 
-
-sub X_mainwindowcallback {
-   my $id = shift; # name of control firing event
-my $d; #dummy###
-   if ($id eq 'exercisekey') {
-      my $ch = shift;
-      checkchar($ch);
-   } elsif ($id eq 'next') {
-      runexercise();
-   } elsif ($id eq 'setexweights') {
-      setexweights();
-   } elsif ($id eq 'calibrate') {
-      calibrate();
-   } elsif ($id eq 'autoweight') {
-      autoweight();
-   } elsif ($id eq 'generate') {
-      validateSettings();
-      prepareTest();
-      $d->Contents(generateText());
-   } elsif ($id eq 'play') {
-      validateSettings();
-      prepareTest();
-      playText();
-   } elsif ($id eq 'flash') {
-      validateSettings();
-      prepareTest();
-      flashText();
-   } elsif ($id eq 'start') {
-      validateSettings();
-      prepareTest();
-      startAuto();
-   } elsif ($id eq 'finish') {
-      abortAuto();
-   }
-}
-
 sub setkochlevel {
    my $self = shift;
    my $e = $self->{dlg}->{e};
