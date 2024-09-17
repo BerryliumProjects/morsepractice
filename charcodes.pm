@@ -69,7 +69,7 @@ sub getCharsKochOrder {
       return getChars();
    }
 
-   my $KochSequence = 'kmrsuaptlowi.njef0y,vg5/q9zh38b?427c1d6xi:';
+   my $KochSequence = 'kmrsuaptlowi.njef0y,vg5/q9zh38b?427c1d6x=:';
 
    if ($KochLevel < length($KochSequence)) {
       $KochSequence = substr($KochSequence, 0, $KochLevel);

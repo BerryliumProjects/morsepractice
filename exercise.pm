@@ -608,6 +608,29 @@ sub marktest {
       }
    }
 
+   # add characters with slow responses to focus on
+   if ($e->{measurecharreactions}) {
+      my $rbc = $r->{reactionsbychar};
+      my $grandcharcount = $rbc->grandcount - $rbc->keycount('>'); # don't include spaces in average
+
+      if ($grandcharcount > 0) {
+         my $exavg = ($rbc->grandtotal - $rbc->keytotal('>')) / $grandcharcount;
+         my $avg = $rbc->averages;
+         
+         foreach (@{$rbc->keys()}) {
+            if (($_ ne '>') and ($rbc->keycount($_) > 1)) { # ignore spaces and single outliers
+               if ($avg->{$_} > 1.2 * $exavg) { # 20% slower than average
+                  $r->{focuschars} .= $_;
+               }
+
+               if ($avg->{$_} > 1.5 * $exavg) { # very slow responses get additional weight
+                  $r->{focuschars} .= $_;
+               }
+            }
+         }
+      }
+   }
+
    return $r;
 }
 
