@@ -1,9 +1,7 @@
-<html>
-<body>
 
-	<h1>Morse Practice Help</h1>
+	<h1>Morse Practice Application</h1>
 
-	<p> This application is designed to help you learn and improve copying morse code, by enabling you to create exercises to suit your level of expertise. </p>
+	<p> This computer application has been created by Colin Berry (M0GXV) to help you to learn and improve your proficiency in receiving morse code (CW), by enabling you to create exercises to suit your level of expertise. This article explains below to explain how it works and how to profitably use it. </p> 
 
 	<p> The program is written in perl, which natively runs on Linux and also works on Windows using a suitable implementation, such as "Strawberry Perl". The following perl modules are used, which may need to be installed:
 
@@ -16,7 +14,11 @@
 
 	<p> The application can be downloaded from my <a href="https://github.com/BerryliumProjects/morsepractice.git" target="_blank">BerryliumProjects github repository</a>. If you are a git user, then feel free to amend the program however you want, and possibly even feed back improvements. Otherwise you can download a zip of the files (they are all in a single location) and unpack that locally.  Open the installation directory in a shell and type <pre>perl morsedlg.pl</pre> to run it. </p>
 
-	<p> There is a main dialog, in which you design and run the exercise, and a separate results window with an analysis of how you performed, both in terms of accuracy and speed of response. In addition, the terminal shell from which perl is launched shows response time analysis detail, and is used in the "visual mental word building" exercise. The main dialog has a set of default settings which you can alter as required. These affect the type of exercise, what words or characters will be included, and how the audio is generated. </p>
+	<p> There is a main dialog, in which you select audio parameters and select a type of exercise, separate dialogs for each exercise type, and a final results window with an analysis of how you performed, both in terms of accuracy and speed of response. In addition, the terminal shell from which perl is launched shows response time analysis detail, and is used in the "visual mental word building" exercise. The main dialog has a set of default settings which you can alter as required. These affect the type of exercise, what words or characters will be included, and how the audio is generated. </p>
+
+    <tr><td>
+    <img src="manual_main.png" class="insetpics" />
+    <img src="manual_exercise.png" class="insetpics" />
 
 	<h2>Types of exercise </h2>
 
@@ -169,8 +171,12 @@
 	<p> It is possible to run the program in a virtual machine. I once found that such an arrangement could affect the rate of playing sound samples, resulting in the wrong pitch and WPM rates. To detect if this is occurring, click <b>Calibrate</b>. This will play "000 CQ CQ" at a standard treble 'A' pitch (440 Hz) then "PARIS PARIS" at the selected pitch and WPM. If the A note pitch is incorrect (or less reliably, the time between the two words), you can enter a correction rate in <b>Playing rate factor</b>, which will also fix playing speed.</p>
 
 	<p> The volume of note emitted can also be adjusted. <b>Tone volume attenuation</b> reduces the volume by that number of decibels. It is recommended to increase this number until the note is quiet while remaining clearly audible. This discipline also helps to naturally reduce the perception of background noise when listening on-air. If you do this, note that shorter pulse times need more volume to be perceived accurately. </p>
+    </td></tr>
 
 	<h2>Performance analysis</h2>
+
+    <tr><td>
+    <img src="manual_results.png" class="insetpics" />
 	
 	<p> If you type into the application what you hear, then it can provide some interesting analysis of your performance. It is not intended to be an objective test of how well you would cope as an on-air morse listener - there are additional skills which need to be practised to function effectively in those scenarios, such as dealing with noise, fading, other signals, unevenly formed characters, inadequate word gaps, and spelling mistakes by the sender. However getting an indication of how you are progressing can be encouraging, and highlighting which characters or sequences you find challenging can help you focus your efforts. </p>
 
@@ -221,7 +227,11 @@
 
 	<p> The <b>Success rate by position</b> report is also shown in this mode, however no reaction times are shown as these are irrelevant.</p> 
 
-	<h3>Detail in terminal output</h3>
+	    </td></tr>
+	<h2>Detail in terminal output</h2>
+
+    <tr><td>
+    <img src="manual_terminal.png" class="insetpics" />
 
 	<p> After a summary of the parameters passed to the audio player component (morseplayer2.pl), a detailed log of responses and reaction times are shown at the end of the exercise. The fields shown are:
 
@@ -231,6 +241,4 @@
 	<li>reaction time to respond to the character, whatever statistical display mode is selected </li>
 	<li>typing time is the time between keystrokes (so is not reported for the first character in a word). This indicates your typing proficiency if you are responding to a word or partial word as a continuous sequence.</li></ul></p>
 
-</body>
-</html>
-
+	</tr></td>

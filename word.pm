@@ -19,7 +19,11 @@ sub createfromchar {
    my $ch = shift;
    my $self = $class->new;
 
-   if (defined($ch) and length($ch) == 1 and $ch ne "\b" and $ch ne ' ') {
+   if (defined($ch) and length($ch) == 1 and $ch ne "\b") {
+      if ($ch eq ' ') {
+         $ch = '-'; # means missed character
+      }
+
       $self->append($ch);
       $self->append(' ');
    }
@@ -71,7 +75,7 @@ sub createdummy {
 # remove the most recently added element from an incomplete word
 sub undo {
    my $self = shift;
-   
+
    if (not $self->{complete}) {
       pop (@{$self->{charstats}});
 

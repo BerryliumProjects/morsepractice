@@ -34,6 +34,12 @@ sub entries {
    return $self->{entries};
 }
 
+sub control {
+   my $self = shift;
+   my $ctlvar = shift;
+   return $self->{controls}->{$ctlvar};
+}
+
 sub addEntryField {
    my $self = shift;
    my $ctllabel = shift;
@@ -262,7 +268,8 @@ sub addListboxField {
    }
       
    my $onselect = sub {
-         $self->{entries}->{$ctlvar} = $entryctl->curselection;
+      my $selectionindex = $entryctl->curselection;
+      $self->{entries}->{$ctlvar} = $entryctl->get($selectionindex);
    }; 
 
    $entryctl->bind('<<ListboxSelect>>', $onselect);
@@ -274,6 +281,27 @@ sub addListboxField {
    $self->{attr}->{$ctlvar} = "listbox $attributes ";
 
    return $entryctl;
+}
+
+# following is to allow some entities to be controlled only by the program rather than the user. If the named field already exists, it is not replaced
+
+sub addHiddenField {
+   my $self = shift;
+   my $ctllabel = shift;
+   my $ctlvar = shift;
+   my $initvalue = shift;
+   my $attributes = shift;
+
+   return if (defined $self->{attr}->{ctlvar});
+
+   $self->{entries}->{$ctlvar} = $initvalue;
+   $self->{attr}->{$ctlvar} = "";
+
+   if (defined $attributes) {
+      $self->{attr}->{$ctlvar} = "$attributes ";
+   }
+
+   return;
 }
 
 sub addButtonField {

@@ -1,4 +1,8 @@
-our %charcodes = (
+use strict;
+use warnings;
+package CharCodes;
+
+my %charcodes = (
    
    a=>'.- ',
    b=>'-... ',
@@ -44,5 +48,61 @@ our %charcodes = (
    ':'=>'---... ',
    ' '=>'  ', 
 );
+
+sub getCharCodes {
+   return \%charcodes;
+}
+
+
+sub getChars {
+   my $ch = join('', sort keys(%charcodes));
+   $ch =~ s/ //; # remove blank
+   return $ch;
+}
+
+sub getCharsKochOrder {
+   my $class = shift;
+   my $KochLevel = shift;
+
+   if ($KochLevel < 1) {
+      # don't use Koch method - show alphanumerically for easier manual choice
+      return getChars();
+   }
+
+   my $KochSequence = 'kmrsuaptlowi.njef0y,vg5/q9zh38b?427c1d6x=:';
+
+   if ($KochLevel < length($KochSequence)) {
+      $KochSequence = substr($KochSequence, 0, $KochLevel);
+   }
+
+   return $KochSequence;
+}
+
+
+sub getKochWeights {
+   my $class = shift;
+   my $KochLevel = shift;
+
+   if ($KochLevel < 1) {
+      return '';
+   }
+
+   my $KochSequence = $class->getCharsKochOrder($KochLevel);
+
+   # show recently learned characters more frequently
+   my $KochWeights = '';
+
+   if ($KochLevel > 4) {
+      my $extraWeightprevious = int($KochLevel / 5);
+      $KochWeights .= substr($KochSequence, -2, 1) x $extraWeightprevious;
+   }
+
+   if ($KochLevel > 2) {
+      my $extraWeightlatest = int($KochLevel / 3);
+      $KochWeights .= substr($KochSequence, -1, 1) x $extraWeightlatest;
+   }
+
+   return $KochWeights;
+}
 
 1;
