@@ -713,14 +713,8 @@ sub generateText {
 
 sub calibrate {
    my $self = shift;
-   $self->openStandardPlayer;
-   # Play a standard tune-up message at "A" pitch and 20 wpm and -20dB amplitude
-
-   $self->writePlayer("000");
-   $self->closePlayer;
-
    $self->openPlayer;
-   # now play a standard message at the selected pitch and wpm 
+   # play a standard message at the selected pitch and wpm 
 
    $self->writePlayer("paris paris");
    $self->closePlayer;
