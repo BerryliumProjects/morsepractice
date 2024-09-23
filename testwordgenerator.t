@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>17;
+use Test::Simple tests=>18;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -71,8 +71,11 @@ ok (defined($w), '$w defined');
 $w->addCallsign(1, 0, 3);
 ok ($w->{size} == 3, '3 euro simple callsigns added');
 
-$w->addCallsign(0, 1, 3);
-ok ($w->{size} == 6, '3 random complex callsigns added');
+$w->addCallsign(1, 1, 3);
+ok ($w->{size} == 6, '3 euro callsigns with possible suffixes added');
+
+$w->addCallsign(0, 2, 3);
+ok ($w->{size} == 9, '3 random complex callsigns added');
 
 ok ($w->chooseWord ne '', 'first word chosen');
 ok ($w->chooseWord ne '', 'second word chosen');

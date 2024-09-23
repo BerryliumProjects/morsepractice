@@ -122,7 +122,7 @@ sub addPseudo {
 sub addCallsign {
    my $self = shift;
    my $europrefix = shift;
-   my $complex = shift;
+   my $complexity = shift; # 1 includes possible suffix, 2 includes both possible prefix and suffix
    my $count = shift;
 
    my @alpha;
@@ -171,7 +171,7 @@ sub addCallsign {
 
       my $word = $prefixes[0];
 
-      if ($complex) {
+      if ($complexity > 1) {
          # extra operating country prefix
          $word .= '/' . $prefixes[1];
       }
@@ -186,7 +186,7 @@ sub addCallsign {
          $word .= $alpha[int(rand(26))];
       }
 
-      if ($complex) {
+      if ($complexity > 0) {
          my $suffixpc = rand(100);
 
          if ($suffixpc > 80) {
@@ -201,9 +201,6 @@ sub addCallsign {
          } elsif ($suffixpc > 63) {
             # maritime mobile
             $word .= '/mm'
-         } elsif ($suffixpc > 60) {
-            # Jota
-            $word .= '/j'
          } # otherwise no suffix
       }
 

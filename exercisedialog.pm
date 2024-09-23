@@ -36,10 +36,9 @@ sub show {
    my $e = $self->{e} = $xwdf->entries; # gridframe control values
 
    # initialise all possible exercise parameters - change type to visible if required
-   my @stringexfields = qw/practicetime keylist xweights AutoExtraWeights/;
+   my @stringexfields = qw/extype practicetime keylist xweights AutoExtraWeights/;
    my @numexfields = qw/kochlevel minwordlength maxwordlength wordlistsize dictsize dictoffset repeatcnt
-      userelfreq syncafterword allowbackspace measurecharreactions retrymistakes
-      userandom usepseudo useedict usephonemes usehdict usespecified usescalls useicalls europrefix useqdict useqphrases/;
+      userelfreq syncafterword allowbackspace measurecharreactions retrymistakes usespecified usescalls useicalls europrefix/;
    my @inheritedfields = qw/wpm effwpm pitch attenuation pitchshift playratefactor dashweight extrawordspaces/;
 
    foreach my $fname (@stringexfields, @inheritedfields) {
@@ -49,6 +48,8 @@ sub show {
    foreach my $fname (@numexfields) {
       $xwdf->addHiddenField('', $fname, 0);
    }
+
+   $e->{extype} = $extype;
 
    my $chars = CharCodes->getChars();
 
@@ -133,26 +134,6 @@ sub show {
              $e->{$i} = $mdlg->{e}->{$prevkey};
          }
       }
-   }
-
-   if ($extype eq 'Single characters') {
-      $e->{userandom} = 1;
-   } elsif ($extype eq  'Random sequences') {
-      $e->{userandom} = 1;
-   } elsif ($extype eq  'Phonemes') {
-      $e->{usephonemes} = 1;
-   } elsif ($extype eq  'Pseudo words') {
-      $e->{usepseudo} = 1;
-   } elsif ($extype eq  'Common words') {
-      $e->{usehdict} = 1;
-   } elsif ($extype eq  'Dictionary words') {
-      $e->{useedict} = 1;
-   } elsif ($extype eq  'QSO terms') {
-      $e->{useqdict} = 1;
-   } elsif ($extype eq  'QSO phrases') {
-      $e->{useqphrases} = 1;
-   } elsif ($extype eq  'Numbers') {
-      $e->{userandom} = 1;
    }
 
    $self->{ex} = Exercise->init($self);

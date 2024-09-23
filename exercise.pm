@@ -165,43 +165,33 @@ sub prepareTest {
    $e->{autoextraweights} = ''; 
 
    $self->{twg} = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
-
+   my $extype = $e->{extype};
    # build selected word list considering complexity and min/max word length
 
-   if ($e->{userandom}) {
+   if ($extype =~ /Single|Random|Numbers/) {
       $self->{twg}->addRandom($e->{keylist} . $e->{xweights}, 200);
-   }
-
-   if ($e->{usepseudo}) {
+   } elsif ($extype =~ 'Pseudo words') {
       $self->{twg}->addPseudo(200);
-   }
-
-   if ($e->{usephonemes}) {
+   } elsif ($extype eq 'Phonemes') {
       $self->{twg}->addPhonemes();
-   }
-
-   if ($e->{useqdict}) {
+   } elsif ($extype eq 'QSO terms') {
       $self->{twg}->addDictionary('qsowordlist.txt', 0, 999);
-   }
-
-   if ($e->{useqphrases}) {
+   } elsif ($extype eq 'QSO phrases') {
       $self->{twg}->addDictionary('qsophrases.txt', 0, 999);
-   }
-
-   if ($e->{usehdict}) {
+   } elsif ($extype eq  'Common words') {
       $self->{twg}->addDictionary('wordlist100.txt', 0, 999);
-   }
-
-   if ($e->{useedict}) {
+   } elsif ($extype eq 'Dictionary words') {
       $self->{twg}->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize});
-   }
+   } elsif ($extype eq 'Callsigns') {
+      if ($e->{usescalls}) { # include simple callsigns
+         $self->{twg}->addCallsign($e->{europrefix}, 0, 200);
+      } else { # include some suffixes after simple callsigns
+         $self->{twg}->addCallsign($e->{europrefix}, 1, 200);
+      }
 
-   if ($e->{usescalls}) {
-      $self->{twg}->addCallsign($e->{europrefix}, 0, 200);
-   }
-
-   if ($e->{useicalls}) {
-      $self->{twg}->addCallsign($e->{europrefix}, 1, 50);
+      if ($e->{useicalls}) { # include some international prefixes, some also with suffixes
+         $self->{twg}->addCallsign($e->{europrefix}, 2, 50);
+      }
    }
 
    if ($e->{usespecified}) {
