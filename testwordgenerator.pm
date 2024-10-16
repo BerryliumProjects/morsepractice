@@ -98,7 +98,7 @@ sub addPseudo {
    for (my $i = 0; $i < $count; $i++) {
       # choose approximate word length less than but not equal to the maximum
 
-      my $targetwordlength = int(rand($self->{maxlength} - $self->{minlength})) + $self->{minlength};
+      my $targetwordlength = int(rand(0.99 + $self->{maxlength} - $self->{minlength})) + $self->{minlength};
       my $word = '';
       my $wordlength = 0;
       my $wantvowel = (int(rand(5)) == 0); # choose initial vowel 20% of the time
@@ -112,8 +112,6 @@ sub addPseudo {
          $wordlength = length($word);
       }
 
-      # truncate the word to the maximum length - assume first letter of final element is also ok at end of word
-      $word = substr($word, 0, $self->{maxlength});
       $self->addWord($word);
    }
 }
@@ -221,8 +219,15 @@ sub chooseElement {
       'e';
 
    my $elementList = $elements->{$elementPosition};
-   my $elementIndex = int(rand(scalar(@{$elementList})));
-   return $elementList->[$elementIndex];
+   my $element;
+
+   for (1 .. 4) { # if still not found a short enough phoneme, just accept the final one
+      my $elementIndex = int(rand(scalar(@{$elementList})));
+      $element = $elementList->[$elementIndex];
+      last if (length($element) <= $targetwordlength - $wordlength); # found a phoneme which fits
+   }
+
+   return $element;
 }
 
 
