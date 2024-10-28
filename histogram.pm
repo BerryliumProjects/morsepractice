@@ -69,13 +69,13 @@ sub averages {
 sub keycount {
    my $self = shift;
    my $key = shift;
-   return $self->{count}->{$key};
+   return ($self->{count}->{$key} or 0);
 }
 
 sub keytotal {
    my $self = shift;
    my $key = shift;
-   return $self->{total}->{$key};
+   return ($self->{total}->{$key} or 0);
 }
 
 sub keys {
