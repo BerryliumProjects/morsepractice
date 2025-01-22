@@ -54,6 +54,7 @@ sub init {
    $self->{userwords} = undef;
    $self->{testwordcnt} = 0;
    $self->{userwordinput} = undef;
+   $self->{testattempted} = undef;
    $self->{MP} = undef;
    $self->{running} = undef;
    return $self;
@@ -231,8 +232,8 @@ sub validateSettings {
       $e->{maxwordlength} = $e->{minwordlength};
    }
 
-   if ($e->{retrymistakes}) {
-      $e->{syncafterword} = 1; # 'can't retry unless syncing after each word
+   if (! $e->{syncafterword}) {
+      $e->{retrymistakes} = 0; # can't retry unless syncing after each word
    }
 
    unless ($e->{practicetime} =~ /^[\d\.]+$/ and $e->{practicetime} > 0){
@@ -257,6 +258,7 @@ sub startAuto {
    $self->{userwords} = [];
    $self->{userwordinput} = Word->new;
    $self->{testwordcount} = 0;
+   $self->{testattempted} = 0;
 
    $self->writePlayer("= ");
    sleep 2;
@@ -367,6 +369,10 @@ sub checkword {
    }
 
    push(@{$self->{userwords}}, $self->{userwordinput});
+
+   if (length($self->{userwordinput}->wordtext) > 0) {
+      $self->{testattempted} = 1;
+   }
 }
 
 
@@ -500,6 +506,8 @@ sub marktest {
    foreach (@testwordix) {
       push(@{$r->{testwordtext}}, $testwords[$_]->wordtext);
    }
+
+   return $r unless $self->{testattempted};
 
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;

@@ -190,15 +190,10 @@ sub exwindowcallback {
    if ($id eq 'exercisekey') {
       my $ch = shift;
       $ex->checkchar($ch);
-   } elsif ($id eq 'next') {
-      runexercise();
    } elsif ($id eq 'setexweights') {
       $ex->setexweights();
    } elsif ($id eq 'setkochlevel') {
       $ex->setkochlevel();
-   } elsif ($id eq 'calibrate') {
-#      my $ex = Exercise->init($self);
-      $ex->calibrate;
    } elsif ($id eq 'autoweight') {
       $ex->autoweight();
    } elsif ($id eq 'generate') {
