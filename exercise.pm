@@ -21,6 +21,7 @@ use histogram;
 #use exercisedialog;
 use resultsdialog;
 use word;
+use results;
 
 # constants
 my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
@@ -375,89 +376,9 @@ sub checkword {
    }
 }
 
-
-sub markword { 
-   my $self = shift;
-   my $e = $self->{dlg}->{e};
-
-   # find characters in error and mark reactions
-   my $userinputref = shift;
-   my $teststatsref = shift;
-   my $r = shift;
-
-   my $markuserword = $userinputref->wordtext;
-   my $marktestword = $teststatsref->wordtext;
-
-   if ($markuserword eq $marktestword) {
-      $r->{successes}++;
-   }
-
-   my $testwordlength = length($marktestword);
-   my $prevtestchar = '';
-
-   for (my $i = 0; $i < $testwordlength; $i++) {
-      my ($userchar, $usertime) = $userinputref->chardata($i);
-      my ($testchar, $endchartime, $testpulsecnt) = $teststatsref->chardata($i);
-
-      $r->{pulsecount} += $testpulsecnt; # for whole session
-      $r->{nonblankcharcount}++;
-
-      if ($userchar eq '_' or $userchar eq '-') { # missed char
-         $r->{missedchars}->add($testchar, 1);
-         $r->{successbypos}->add($i, 0);
-         $r->{focuschars} .= $prevtestchar . $testchar; # include the previous character which may have stumbled
-      } elsif ($userchar ne $testchar) { # mistaken char
-         $r->{mistakenchars}->add($testchar, 1);
-         $r->{successbypos}->add($i, 0);
-         $r->{focuschars} .= $userchar . $testchar . $testchar;
-      } else {
-         $r->{successbypos}->add($i, 1);
-      }
-
-      $prevtestchar = $testchar;
-
-      my $reaction = $usertime - $endchartime;
-
-      if ($reaction < $minimumreaction and $userchar eq '_') {
-         $reaction = $defaultreaction;  # avoid suspicious reactions from skewing stats
-      }
-
-      if ($e->{measurecharreactions}) {
-         $r->{reactionsbychar}->add($testchar, $reaction);
-         $r->{reactionsbypos}->add($i, $reaction);
-      }
-   }
-
-   my ($userspace, $userspacetime) = $userinputref->chardata($testwordlength);
-
-   # measure reaction from when next character would have been expected
-   my $endspacetime = $teststatsref->{endtime};
-   my $spacereaction = $userspacetime - $endspacetime;
-
-   $r->{pulsecount} += 4; # for whole session
-
-   if ($userspacetime > 0) {
-      if ($e->{measurecharreactions}) {
-         $r->{reactionsbychar}->add('>', $spacereaction);
-      }
-
-      # also record reaction/histogram by position in word (key:tab-n)
-      $r->{reactionsbypos}->add(-1, $spacereaction);
-
-      # if in word recognition mode, note reaction time to start entering word
-      # the end of the word can be detected as soon as the next expected element is absent
-      if (not $e->{measurecharreactions}) {
-         my $wordreaction = $userinputref->{starttime} - $teststatsref->{endtime};
-         $r->{reactionsbypos}->add(-2, $wordreaction);
-      }
-   }
-}
-
 sub marktest {
    my $self = shift;
    my $e = $self->{dlg}->{e};
-
-   my $r = {}; # results structure
 
    $self->{dlg}->{d}->Contents(''); # clear the text display
 
@@ -483,34 +404,13 @@ sub marktest {
    close($statshandle);
    unlink($mp2statsfile);
 
-   $r->{testwordcnt} = scalar(@testwords);
-   $r->{duration} = time() - $self->{starttime};
-   $r->{successes} = 0;
-   $r->{pulsecount} = 0;
-   $r->{nonblankcharcount} = 0;
-   $r->{testwordtext} = [];
-   $r->{markedwords} = '';
-   $r->{focuswords} = '';
-   $r->{focuschars} = '';
-
-   $r->{reactionsbychar} = Histogram->new;
-   $r->{reactionsbypos} = Histogram->new;
-   $r->{missedchars} = Histogram->new;
-   $r->{mistakenchars} = Histogram->new;
-   $r->{successbypos} = Histogram->new;
-
-   return if ($r->{testwordcnt} == 0); # possible if aborted early
-
-   my @testwordix = (0 .. ($r->{testwordcnt} - 1)); # set of test word indexes
-
-   foreach (@testwordix) {
-      push(@{$r->{testwordtext}}, $testwords[$_]->wordtext);
-   }
+   my $r = Results->init(\@testwords, $self->{starttime}, $e); # results of test evaluation
 
    return $r unless $self->{testattempted};
 
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;
+   my @testwordix = (0 .. ($self->{testwordcnt} - 1)); # set of test word indexes
 
    foreach (@testwordix) {
       last unless defined $self->{userwords}->[$iuw];
@@ -554,81 +454,7 @@ sub marktest {
       }
    }
 
-   # report detailed test performance for all words
-   print "\nReport fields: testchar, pulsecount, userchar, reaction(ms), typingtime(ms)\n\n";
-
-   foreach (@testwordix) {
-      print $testwords[$_]->report($self->{userwords}->[$_]), "\n";
-
-   }
-
-   # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
-   foreach (@testwordix) {
-      last unless defined $self->{userwords}->[$_];
-      # analyse word characters
-      $self->markword($self->{userwords}->[$_], $testwords[$_], $r);
-   }
-
-   # summary of test with corrections shown
-   foreach (@testwordix) {
-      my $testwordtext = $testwords[$_]->wordtext;
-      my $userwordtext = '';
-
-      if (defined $self->{userwords}->[$_]) {
-         $userwordtext = $self->{userwords}->[$_]->wordtext;
-      }
-
-      $r->{markedwords} .= "$userwordtext ";
-
-      if ($userwordtext ne $testwordtext) {
-         $r->{markedwords} .= "# [$testwordtext] ";
-      }
-   }
-
-   # words to focus on next time (don't include any not attempted at end)
-   my $prevtestwordtext = '';
-
-   foreach (@testwordix) {
-      my $testwordtext = $testwords[$_]->wordtext;
-      last unless defined $self->{userwords}->[$_];
-
-      my $userwordtext = $self->{userwords}->[$_]->wordtext;
-
-      if ($userwordtext ne $testwordtext) {
-         if ((not $e->{syncafterword}) and ($prevtestwordtext ne '')) {
-            $r->{focuswords} .= "$prevtestwordtext "; # a likely cause of error
-            $prevtestwordtext = ''; # don't add twice
-         }
-
-	 $r->{focuswords} .= "$testwordtext ";
-      } else {
-         $prevtestwordtext = $testwordtext;
-      }
-   }
-
-   # add characters with slow responses to focus on
-   if ($e->{measurecharreactions}) {
-      my $rbc = $r->{reactionsbychar};
-      my $grandcharcount = $rbc->grandcount - $rbc->keycount('>'); # don't include spaces in average
-
-      if ($grandcharcount > 0) {
-         my $exavg = ($rbc->grandtotal - $rbc->keytotal('>')) / $grandcharcount;
-         my $avg = $rbc->averages;
-         
-         foreach (@{$rbc->keys()}) {
-            if (($_ ne '>') and ($rbc->keycount($_) > 1)) { # ignore spaces and single outliers
-               if ($avg->{$_} > 1.2 * $exavg) { # 20% slower than average
-                  $r->{focuschars} .= $_;
-               }
-
-               if ($avg->{$_} > 1.5 * $exavg) { # very slow responses get additional weight
-                  $r->{focuschars} .= $_;
-               }
-            }
-         }
-      }
-   }
-
+   $r->markwords($self->{userwords}, \@testwords);
    return $r;
 }
 
