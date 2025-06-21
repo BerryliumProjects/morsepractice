@@ -40,8 +40,11 @@ sub show {
    # using standard average word length 5, 6 extra pauses per (word + space)
    my $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
    $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $stdcharpausetime * 100); # as percentage
-
    $re->{score} = $res->{score};
+
+   if ($e->{sessionPB} > 0) {
+      $re->{score} .= ' (session PB: ' . $e->{sessionPB} . ')'
+   }
 
    $rwdf->{controls}->{markedwords}->Contents($res->{markedwords});
 

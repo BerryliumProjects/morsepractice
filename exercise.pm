@@ -57,6 +57,7 @@ sub init {
    $self->{testattempted} = undef;
    $self->{MP} = undef;
    $self->{running} = undef;
+   $self->{sessionPB} = 0; # highest score for this exercise session
    return $self;
 }
 
@@ -561,6 +562,10 @@ sub stopAuto {
          ResultsDialog::show($res, $self->{dlg});
          $self->{dlg}->{d}->Contents($res->{focuswords}); # retain failed test words
          $e->{autoextraweights} = $res->{focuschars};
+
+         if ($res->{score} > $e->{sessionPB}) {
+            $e->{sessionPB} = $res->{score};
+         }
       } else {
          $self->{dlg}->{d}->Contents(join ' ', @{$res->{testwordtext}});
       }
