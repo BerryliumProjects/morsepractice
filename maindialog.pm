@@ -15,6 +15,7 @@ use lib '.';
 use dialogfields;
 use exercisedialog;
 use exercise;
+use playerclient;
 
 sub init {
    my $class = shift;
@@ -85,14 +86,21 @@ if (!defined($mwdf->{attr}->{$k})) {print "Attributes undefined for '$k'\n"};
 sub mainwindowcallback {
    my $self = shift;
    my $id = shift; # name of control firing event
-   my $ex = $self->{ex};
 
    if ($id eq 'next') {
       ExerciseDialog->show($self);
    } elsif ($id eq 'calibrate') {
-      my $ex = Exercise->init($self);
-      $ex->validateAudioSettings();
-      $ex->calibrate();
+      $self->validateAudioSettings();
+      PlayerClient->calibrate($self->{e});
+   }
+}
+
+sub validateAudioSettings {
+   my $self = shift;
+   my $e = $self->{e};
+
+   if ($e->{pitchshift} eq '') {
+      $e->{pitchshift} = 0;
    }
 }
 

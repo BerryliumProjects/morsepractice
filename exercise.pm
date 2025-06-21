@@ -22,6 +22,7 @@ use histogram;
 use resultsdialog;
 use word;
 use results;
+use playerclient;
 
 # constants
 my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
@@ -62,6 +63,7 @@ sub init {
 }
 
 sub openPlayer {
+die "Tried to access Exercise::openPlayer"; 
    my $self = shift;
    my $textmode = shift;
 
@@ -80,6 +82,7 @@ sub openPlayer {
 }
 
 sub openStandardPlayer {
+die "tried to access Exercise::openStandardPlayer";
    my $self = shift;
    my $e = $self->{dlg}->{e};
 
@@ -93,6 +96,7 @@ sub openStandardPlayer {
 }
 
 sub closePlayer {
+die "tried to access Exercise::closePlayer";
    my $self = shift;
    my $force = shift;
 
@@ -119,6 +123,8 @@ sub closePlayer {
 }
 
 sub writePlayer {
+die "tried to access Exercise::writePlayer";
+
    my $self = shift;
    my $text = shift;
 
@@ -212,6 +218,7 @@ sub prepareTest {
 }
 
 sub validateAudioSettings {
+die "Attempt to use Exercise::validateAudioSettings"; 
    my $self = shift;
    my $e = $self->{dlg}->{e};
 
@@ -249,7 +256,6 @@ sub startAuto {
    return if $e->{running};
    $e->{running} = 1;
 
-   $self->openPlayer();
 
    $self->{dlg}->{d}->Contents('');
    $self->{dlg}->{d}->focus;
@@ -261,22 +267,21 @@ sub startAuto {
    $self->{testwordcount} = 0;
    $self->{testattempted} = 0;
 
-   $self->writePlayer("= ");
-   sleep 2;
-   $self->syncflush;
-   unlink($mp2statsfile);
+   PlayerClient->playText($e, ''); # plays = and some space, so hearer knows what speed to expect
+   $self->{MP} = PlayerClient->init;
+   $self->{MP}->openPlayer($e);
 
    $self->{starttime} = undef;
 
    $self->{dlg}->startusertextinput;
 
    if ($e->{syncafterword}) {
-      $self->writePlayer($self->{twg}->chooseWord);
+      $self->{MP}->writePlayer($self->{twg}->chooseWord);
    } else {
       my $testtext = $self->generateText();
       my @testtext = split(/ /, $testtext);
       $self->{testwordcount} = scalar(@testtext); # target word count
-      $self->writePlayer($testtext);
+      $self->{MP}->writePlayer($testtext);
    }
 }
 
@@ -346,7 +351,7 @@ sub checkword {
    return unless $e->{running};
 
    if ($e->{syncafterword}) {
-      $self->syncflush;
+      $self->{MP}->syncflush;
 
       if (($e->{practicetime} * 60) < (time() - $self->{starttime})) {
          $self->{abortpendingtime} = time();
@@ -361,7 +366,7 @@ sub checkword {
             $testword = $self->{twg}->chooseWord;
          }
 
-         $self->writePlayer($testword);
+         $self->{MP}->writePlayer($testword);
       }
    } else {
       if (scalar(@{$self->{userwords}}) + 1 >= $self->{testwordcount}) {
@@ -383,8 +388,7 @@ sub marktest {
    $self->{dlg}->{d}->Contents(''); # clear the text display
 
    # get test report from player
-   my $statshandle;
-   open ($statshandle, $mp2statsfile);
+   my $statshandle = PlayerClient->openStats or die "Missing test word stats file";
 
    my @testwords = ();
    my $testword = Word->createfromfile($statshandle);
@@ -401,8 +405,7 @@ sub marktest {
       $testword = Word->createfromfile($statshandle);
    }
 
-   close($statshandle);
-   unlink($mp2statsfile);
+   PlayerClient->closeStats($statshandle);
 
    my $r = Results->init(\@testwords, $self->{starttime}, $e); # results of test evaluation
 
@@ -471,9 +474,7 @@ sub playText {
       $ptext = $self->generateText();
    }
 
-   $self->openPlayer(1); # multi-line text mode
-   $self->writePlayer("=   $ptext");
-   $self->closePlayer;
+   PlayerClient->playText($e, $ptext);
 
    if ($self->{dlg}->{d}->Contents eq '') {
       $self->{dlg}->{d}->Contents($ptext);
@@ -538,6 +539,7 @@ sub generateText {
 }
 
 sub calibrate {
+die "tried to access Exercise::calibrate";
    my $self = shift;
    $self->openPlayer;
    # play a standard message at the selected pitch and wpm
@@ -553,7 +555,8 @@ sub stopAuto {
    $e->{running} = undef;
 
    $self->{dlg}->stopusertextinput;
-   $self->closePlayer($self->{abortpendingtime} > 0); # force if abort requested
+   $self->{MP}->closePlayer($self->{abortpendingtime} > 0); # force if abort requested
+   $self->{MP} = undef;
 
    if ($self->{starttime} > 0) {
       my $res = $self->marktest();
@@ -589,6 +592,7 @@ sub autoweight {
 }
 
 sub syncflush {
+die "tried to access Exercise::syncflush";
    my $self = shift;
    my $e = $self->{dlg}->{e};
 
