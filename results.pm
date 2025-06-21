@@ -22,10 +22,10 @@ my $minimumreaction = 0.25; # seconds - below this is suspicious unless characte
 
 sub init {
    my $class = shift;
-   
+
    my $self = {};
    bless($self, $class);
- 
+
    my @testwords = @{shift()}; # pass list by reference
    my $starttime = shift;
    $self->{e} = shift;
@@ -39,6 +39,7 @@ sub init {
    $self->{markedwords} = '';
    $self->{focuswords} = '';
    $self->{focuschars} = '';
+   $self->{score} = 0;
 
    $self->{reactionsbychar} = Histogram->new;
    $self->{reactionsbypos} = Histogram->new;
@@ -54,10 +55,10 @@ sub init {
       }
    }
 
-   return $self;    
+   return $self;
 }
 
-sub markword { 
+sub markword {
    my $self = shift;
 
    # find characters in error and mark reactions
@@ -66,7 +67,7 @@ sub markword {
 
    my $markuserword = '';
    my $marktestword = $teststatsref->wordtext;
-   
+
    if (defined $userinputref) {
       $markuserword = $userinputref->wordtext;
       # there might still be less words entered by user than expected. To avoid skewing statistics, don't mark any missed at the end
@@ -148,7 +149,7 @@ sub markwords {
    my $self = shift;
    my @userwords = @{shift()}; # pre-aligned characters and words with test
    my @testwords = @{shift()};
-   
+
    my @testwordix = (0 .. ($self->{testwordcnt} - 1)); # set of test word indexes
 
    # report detailed test performance for all words
@@ -189,7 +190,7 @@ sub markwords {
       if ($grandcharcount > 0) {
          my $exavg = ($rbc->grandtotal - $rbc->keytotal('>')) / $grandcharcount;
          my $avg = $rbc->averages;
-         
+
          foreach (@{$rbc->keys()}) {
             if (($_ ne '>') and ($rbc->keycount($_) > 1)) { # ignore spaces and single outliers
                if ($avg->{$_} > 1.2 * $exavg) { # 20% slower than average
@@ -202,6 +203,22 @@ sub markwords {
             }
          }
       }
+   }
+}
+
+sub calculateScore {
+   my $self = shift;
+
+   if ($self->{nonblankcharcount} > 0) {
+      my $successrate = $self->{successes} / $self->{testwordcnt};
+      my $missedcharcnt = $self->{missedchars}->grandcount;
+      my $mistakencharcnt = $self->{mistakenchars}->grandcount;
+      my $charsuccessrate = 1 - ($missedcharcnt + $mistakencharcnt) / $self->{nonblankcharcount};
+      my $charsuccessfactor = 1 / (1.05 - $charsuccessrate); # grows as success rate approaches 100%
+      my $difficultyfactor = $self->{e}->{effwpm} * ($self->{e}->{maxwordlength} + $self->{e}->{minwordlength});
+      $self->{score} = int($charsuccessfactor * $difficultyfactor);
+   } else {
+      $self->{score} = 0;
    }
 }
 

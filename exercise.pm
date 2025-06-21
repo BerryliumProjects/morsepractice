@@ -29,7 +29,7 @@ my $minimumreaction = 0.25; # seconds - below this is suspicious unless characte
 my $mp2readyfile = '/var/tmp/mp2ready.txt';
 my $mp2pidfile = '/var/tmp/mp2pid.txt';
 my $mp2statsfile = '/var/tmp/mp2stats.txt';
-my $morseplayer = "./morseplayer2.pl"; 
+my $morseplayer = "./morseplayer2.pl";
 
 # global variables
 unlink($mp2pidfile) if -f $mp2pidfile;
@@ -45,7 +45,7 @@ unlink($mp2pidfile) if -f $mp2pidfile;
 
 sub init {
    my $class = shift;
-   
+
    my $self = {};
    bless($self, $class);
    $self->{dlg} = shift;
@@ -53,7 +53,6 @@ sub init {
    $self->{starttime} = 0;
    $self->{abortpendingtime} = 0;
    $self->{userwords} = undef;
-   $self->{testwordcnt} = 0;
    $self->{userwordinput} = undef;
    $self->{testattempted} = undef;
    $self->{MP} = undef;
@@ -72,12 +71,12 @@ sub openPlayer {
    my @audiofields = qw/wpm effwpm pitch playratefactor dashweight extrawordspaces attenuation pitchshift/;
    my $textswitch = $textmode ? '-t' : '';
    my %ehash = %{$e}; # simplifies taking a slice of the values
-   my $openargs = join(' ', @ehash{@audiofields}, $textswitch); 
+   my $openargs = join(' ', @ehash{@audiofields}, $textswitch);
    open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
 
    defined($self->{MP}) or die "Player pipe filehandle not defined";
    autoflush {$self->{MP}} 1;
-}  
+}
 
 sub openStandardPlayer {
    my $self = shift;
@@ -113,7 +112,7 @@ sub closePlayer {
       print {$self->{MP}} "#\n";
    }
 
-   close($self->{MP}); 
+   close($self->{MP});
    $self->{MP} = undef;
    $self->syncflush;
 }
@@ -164,7 +163,7 @@ sub prepareTest {
    my $e = $self->{dlg}->{e};
    return if $e->{running};
 
-   $e->{autoextraweights} = ''; 
+   $e->{autoextraweights} = '';
 
    $self->{twg} = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
    my $extype = $e->{extype};
@@ -208,7 +207,7 @@ sub prepareTest {
 
    $e->{wordlistsize} = $self->{twg}->{size};
 
-   
+
 }
 
 sub validateAudioSettings {
@@ -249,8 +248,8 @@ sub startAuto {
    return if $e->{running};
    $e->{running} = 1;
 
-   $self->openPlayer();   
-      
+   $self->openPlayer();
+
    $self->{dlg}->{d}->Contents('');
    $self->{dlg}->{d}->focus;
    $self->{dlg}->setControlState('disabled');
@@ -267,14 +266,14 @@ sub startAuto {
    unlink($mp2statsfile);
 
    $self->{starttime} = undef;
- 
+
    $self->{dlg}->startusertextinput;
 
-   if ($e->{syncafterword}) {   
+   if ($e->{syncafterword}) {
       $self->writePlayer($self->{twg}->chooseWord);
    } else {
       my $testtext = $self->generateText();
-      my @testtext = split(/ /, $testtext);     
+      my @testtext = split(/ /, $testtext);
       $self->{testwordcount} = scalar(@testtext); # target word count
       $self->writePlayer($testtext);
    }
@@ -410,7 +409,7 @@ sub marktest {
 
    # re-align words in case user missed a space and combined two words
    my $iuw = 0;
-   my @testwordix = (0 .. ($self->{testwordcnt} - 1)); # set of test word indexes
+   my @testwordix = (0 .. ($r->{testwordcnt} - 1)); # set of test word indexes
 
    foreach (@testwordix) {
       last unless defined $self->{userwords}->[$iuw];
@@ -455,6 +454,8 @@ sub marktest {
    }
 
    $r->markwords($self->{userwords}, \@testwords);
+   $r->calculateScore();
+
    return $r;
 }
 
@@ -521,7 +522,7 @@ sub generateText {
 
    my $avgwordlength = ($e->{maxwordlength} + $e->{minwordlength}) / 2;
    ($avgwordlength > 1) or ($avgwordlength = 5);
-  
+
    # the space at the end of a word is approximately half an average character in duration
    my $genwords = $e->{practicetime} * $e->{effwpm} * 5.5 / ($avgwordlength + 0.5 * (1 + int($e->{extrawordspaces})));
 
@@ -531,14 +532,14 @@ sub generateText {
       $text .= $self->{twg}->chooseWord . ' ';
    }
 
-#  chop($text); # remove final blank 
+#  chop($text); # remove final blank
   return $text;
 }
 
 sub calibrate {
    my $self = shift;
    $self->openPlayer;
-   # play a standard message at the selected pitch and wpm 
+   # play a standard message at the selected pitch and wpm
 
    $self->writePlayer("paris paris");
    $self->closePlayer;
@@ -568,7 +569,7 @@ sub stopAuto {
    $self->{dlg}->setControlState('normal');
 
    if ($e->{dictsize} == 0) {
-      $e->{dictsize} = 9999; # avoid lock ups 
+      $e->{dictsize} = 9999; # avoid lock ups
    }
 }
 
@@ -577,7 +578,7 @@ sub autoweight {
    my $e = $self->{dlg}->{e};
    return if $e->{running};
 
-   my $xweights = $e->{autoextraweights}; 
+   my $xweights = $e->{autoextraweights};
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
    $e->{xweights} = $xweights;
 }

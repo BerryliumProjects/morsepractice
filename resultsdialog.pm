@@ -7,14 +7,14 @@ sub show {
    my $e = $mdlg->{e};
    my $rw = $mdlg->{w}->DialogBox(-title=>'Results', -buttons=>['OK']); # results window
    my $rwdf = DialogFields->init($rw);
- 
+
    if ($e->{measurecharreactions}) {
       populateresultswindow1($rwdf);
    } else {
       populateresultswindow2($rwdf);
    }
 
-   # statistics used: 
+   # statistics used:
    #   words:  testwordcnt, successes
    #   chars:  nonblankcharcount, mistakenchars, missedchars
    #   pulses: pulsecount
@@ -40,6 +40,8 @@ sub show {
    # using standard average word length 5, 6 extra pauses per (word + space)
    my $extracharpausetime = 60 / 6 * (1 / $e->{effwpm} - 1 / $e->{wpm});
    $re->{charpausefactor} = sprintf('%i%%', $extracharpausetime / $stdcharpausetime * 100); # as percentage
+
+   $re->{score} = $res->{score};
 
    $rwdf->{controls}->{markedwords}->Contents($res->{markedwords});
 
@@ -68,6 +70,7 @@ sub populateresultswindow1 { # for character timings
    $rwdf->addEntryField('Achieved character wpm', 'charswpm', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Composite Score', 'score', 30, undef, undef, undef, '');
 
    $rwdf->addWideTextField('Marked test words', 'markedwords', 10, 60, '', undef, undef, '');
    $rwdf->addWideTextField('Slowest reactions by character', 'worstchars', 5, 40, '', undef, undef, '');
@@ -86,6 +89,7 @@ sub populateresultswindow2 { # for whole word timings
    $rwdf->addEntryField('Achieved character wpm', 'charswpm', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Composite Score', 'score', 30, undef, undef, undef, '');
 
    $rwdf->addWideTextField('Marked test words', 'markedwords', 10, 60, '', undef, undef, '');
    $rwdf->addWideTextField('Word entry timings', 'wordentrytimings', 3, 40, '', undef, undef, '');
