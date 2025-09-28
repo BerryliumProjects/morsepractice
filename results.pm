@@ -214,7 +214,7 @@ sub calculateScore {
       my $missedcharcnt = $self->{missedchars}->grandcount;
       my $mistakencharcnt = $self->{mistakenchars}->grandcount;
       my $charsuccessrate = 1 - ($missedcharcnt + $mistakencharcnt) / $self->{nonblankcharcount};
-      my $charsuccessfactor = 1 / (1.05 - $charsuccessrate); # grows as success rate approaches 100%
+      my $charsuccessfactor = 1 / (1.1 - $charsuccessrate); # grows as success rate approaches 100%
 
       my $avgwordlength = $self->{nonblankcharcount} / $self->{testwordcnt};
       my $difficultyfactor = $self->{e}->{effwpm} * $avgwordlength;
