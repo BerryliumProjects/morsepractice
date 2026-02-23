@@ -189,7 +189,7 @@ sub prepareTest {
    } elsif ($extype eq  'Common words') {
       $self->{twg}->addDictionary('wordlist100.txt', 0, 999);
    } elsif ($extype eq 'Dictionary words') {
-      $self->{twg}->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize});
+      $self->{twg}->addDictionary('wordlist-complexity.txt', $e->{dictoffset}, $e->{dictsize}, $e->{includechars});
    } elsif ($extype eq 'Callsigns') {
       if ($e->{usescalls}) { # include simple callsigns
          $self->{twg}->addCallsign($e->{europrefix}, 0, 200);

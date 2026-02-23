@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>18;
+use Test::Simple tests=>19;
 use testwordgenerator;
 use Data::Dumper;
 
@@ -45,6 +45,12 @@ $w->addSpecified(0.5, 'ypp', 'ypq', 'ypr', 'yps');
 ok ($w->{size} == 16, 'specified words weighted to 50% of total');
 
 print Dumper $w;
+
+$w = TestWordGenerator->new(4,8);
+$w->addDictionary('wordlist-alpha.txt',5,10,'xq[]()^$.+?\\');
+$word = $w->chooseWord;
+print "Selected word containing x or q: $word\n";
+ok ($word =~ /[qx]/, 'Picks words containing specific characters and ignores special regex chars');
 
 $w = TestWordGenerator->new(4,8);
 $w->addPseudo (10000);

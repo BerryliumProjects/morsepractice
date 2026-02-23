@@ -36,7 +36,7 @@ sub show {
    my $e = $self->{e} = $xwdf->entries; # gridframe control values
 
    # initialise all possible exercise parameters - change type to visible if required
-   my @stringexfields = qw/extype practicetime keylist xweights AutoExtraWeights/;
+   my @stringexfields = qw/extype practicetime keylist xweights AutoExtraWeights includechars/;
    my @numexfields = qw/kochlevel minwordlength maxwordlength wordlistsize dictsize dictoffset repeatcnt
       userelfreq syncafterword allowbackspace measurecharreactions retrymistakes usespecified usescalls useicalls europrefix sessionPB/;
    my @inheritedfields = qw/wpm effwpm pitch attenuation pitchshift playratefactor dashweight extrawordspaces/;
@@ -83,6 +83,7 @@ sub show {
       $xwdf->addEntryField('Word list size', 'wordlistsize', 40, 0, undef, undef, 'locked');
       $xwdf->addEntryField('Dictionary sample size', 'dictsize', 40, 9999);
       $xwdf->addEntryField('Dictionary sample offset', 'dictoffset', 40, 0);
+      $xwdf->addEntryField('Include characters', 'includechars', 40, '');
    }
 
    $xwdf->addEntryField('Repeat words', 'repeatcnt', 40, 0);

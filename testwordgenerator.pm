@@ -23,6 +23,18 @@ sub addDictionary {
    my $wordfile = shift;
    my $offset = shift;
    my $maxcount = shift;
+   my $includechars = shift;
+
+   if (defined $includechars) {
+      $includechars =~ s/[\[\]\^\$\(\)\*\\]//g; # ensure no regex special characters
+      $includechars =~ s/([\.\?\+\/])/\\$1/g; # escape legitimate morse characters
+
+      if (length($includechars) > 0) {
+         $includechars = "[$includechars]";
+      } else {
+         $includechars = undef;
+      }
+   }
 
    my $c = 0; # count of words added
 
@@ -35,10 +47,13 @@ sub addDictionary {
 
          # don't apply length constraints to phrases
          if ($word =~ ' ' or (length($word) >= $self->{minlength} and length($word) <= $self->{maxlength})) {
-            $c++;
-            if ($c > $offset) {
-               $self->addWord($word);
-               last if ($c >= $offset + $maxcount);
+            # if includechars is supplied, ensure word includes at least one of the characters
+            if (!defined($includechars) or $word =~ $includechars) {
+               $c++;
+               if ($c > $offset) {
+                  $self->addWord($word);
+                  last if ($c >= $offset + $maxcount);
+               }
             }
          }
       }
