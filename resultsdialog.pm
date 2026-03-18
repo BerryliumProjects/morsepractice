@@ -112,7 +112,10 @@ sub worstcharsreport {
       my $worstcount = 0;
 
       foreach my $ch (@worstchars) {
-         $worstcharsreport .= sprintf ("%8s%8i ms\n", $ch, $avgreactionsbychar{$ch} * 1000 + 0.5);
+         if ($ch ne '>') { # exclude space from list
+            $worstcharsreport .= sprintf ("%8s%8i ms\n", $ch, $avgreactionsbychar{$ch} * 1000 + 0.5);
+         }
+
          last if ($worstcount++ > 4);
       }
    }
