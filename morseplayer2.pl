@@ -148,8 +148,12 @@ our $pulses = 0;
 open (SI, "<-");
 
 while (<SI>) {
-   last if /^#/;
-   chomp;   
+   chomp;
+
+   if (/^#/) {
+      my @inlinecmdargs = split / /, substr($_,1);
+      last if (scalar(@inlinecmdargs) == 0);
+   }
 
    s/ +/ /g;
 
@@ -166,7 +170,6 @@ while (<SI>) {
    if ($actualtime > $expectedplayendtime) {
 #      print "Recalibrated expected play end time\n"; #diags
       $expectedplayendtime = $actualtime;
-      clearbuffer(); # buffer is empty so pcm device needs waking up first
    }
 
    foreach my $ch (split(//, $chars)) {
