@@ -14,7 +14,6 @@ my $mp2readyfile = '/var/tmp/mp2ready.txt';
 my $mp2pidfile = '/var/tmp/mp2pid.txt';
 my $mp2statsfile = '/var/tmp/mp2stats.txt';
 my $morseplayer = "./morseplayer2.pl";
-my $playratefactor = 1.0; # adjust this if pitch is wrong (possible in a virtual machine?)
 
 sub init {
    my $class = shift;
@@ -43,21 +42,33 @@ sub openPlayer {
    my $e = shift; # ref to user parameters including audio settings
    my $textmode = shift; # optional boolean
 
+
    die "Opening Player when already connected"  if defined($self->{MP});
 
    if (!(defined $e)) {
       $self->openStandardPlayer; # fallback if no explicit parameters supplied
       return;
    }
-   my @audiofields = qw/wpm effwpm pitch playratefactor dashweight extrawordspaces attenuation pitchshift/;
-   my $textswitch = $textmode ? '-t' : '';
-   my %ehash = %{$e}; # simplifies taking a slice of the values
-   defined($ehash{playratefactor}) or $ehash{playratefactor} = $playratefactor; # apply default value
-   my $openargs = join(' ', @ehash{@audiofields}, $textswitch);
-   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
 
+   my @audiofields = qw/wpm effwpm pitch dashweight extrawordspaces attenuation pitchshift/;
+   my %ehash = %{$e}; # simplifies taking a slice of the values
+   my $openargs = join(' ', @ehash{@audiofields});
+   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
    defined($self->{MP}) or die "Player pipe filehandle not defined";
    autoflush {$self->{MP}} 1;
+
+   if ($textmode) {
+      print {$self->{MP}} "# text 1\n";
+   }
+
+   if (defined($e->{playratefactor})) {
+      my $playratefactor = $e->{playratefactor};
+
+      if ($playratefactor != 1) {
+         print {$self->{MP}} "# ratecorrection $playratefactor\n";
+      }
+   }
+
    unlink($mp2statsfile) if -f $mp2statsfile;
 }
 
@@ -66,8 +77,7 @@ sub openStandardPlayer {
 
    die "Opening Player when already connected"  if defined($self->{MP});
 
-   my $openargs = join(' ', 20, 20, 440, $playratefactor, 3, 0, 10, 0);
-   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
+   open($self->{MP}, "|  perl $morseplayer 20") or die "Failed to connect to player";
 
    defined($self->{MP}) or die "Player pipe filehandle not defined";
    autoflush {$self->{MP}} 1;
