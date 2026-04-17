@@ -87,7 +87,7 @@ my $keylistlen = scalar(@keylist);
 
 
 $svr = Audio::Play->new(1);
-$svr->rate(40000);
+# $svr->rate(40000); # uncomment if default bit rate is too low - will emit "audio_flush with state open" warning
 $bitrate = $svr->rate; # may be lower than requested
 # print "Sampling rate: $bitrate\n";
 
@@ -96,10 +96,10 @@ generateAudioData();
 my $prevblkline;
 
 open(READY, "> $mp2readyfile"); close(READY); # signal ready for first input
-our $expectedplayendtime = 0.0;
+my $expectedplayendtime = 0.0;
 my $actualtime;
 my @charendtimereports = ();
-our $pulses = 0;
+my $pulses = 0;
 
 open (SI, "<-");
 
