@@ -9,8 +9,8 @@ use lib '.';
 use charcodes;  # definitions of characters as dit-dah sequences
 
 use warnings;
-
-%charcodes = %{CharCodes::getCharCodes()};
+use strict;
+my %charcodes = %{CharCodes::getCharCodes()};
 
 my $mp2readyfile = '/var/tmp/mp2ready.txt'; 
 my $mp2statsfile = '/var/tmp/mp2stats.txt';
@@ -35,8 +35,10 @@ my $abortpending = 0;
 
 my $bufferinglimit = 3; # seconds
 my $amplitude;
-my $charsilenceduration;
-my $extracharsilenceduration;
+my $risetime;
+my $extrachar;
+my $pulse;
+my $elements = {};
 
 # enable asynchronous abort of a long playing text
 local $SIG{'TERM'} = sub {$abortpending = 1};
@@ -86,20 +88,18 @@ my @keylist = keys(%charcodes);
 my $keylistlen = scalar(@keylist);
 
 
-$svr = Audio::Play->new(1);
+my $svr = Audio::Play->new(1);
 # $svr->rate(40000); # uncomment if default bit rate is too low - will emit "audio_flush with state open" warning
-$bitrate = $svr->rate; # may be lower than requested
+my $bitrate = $svr->rate; # may be lower than requested
 # print "Sampling rate: $bitrate\n";
 
 generateAudioData();
-
-my $prevblkline;
 
 open(READY, "> $mp2readyfile"); close(READY); # signal ready for first input
 my $expectedplayendtime = 0.0;
 my $actualtime;
 my @charendtimereports = ();
-my $pulses = 0;
+my $pulses;
 
 open (SI, "<-");
 
@@ -114,6 +114,15 @@ while (<SI>) {
       # process settings changes
       if ($setting eq 'text') {
          $text = $newvalue;
+      } elsif ($setting eq 'wpm') {
+         $wpm = $newvalue;
+         generateAudioData();
+      } elsif ($setting eq 'effwpm') {
+         $effwpm = $newvalue;
+         generateAudioData();
+      } elsif ($setting eq 'attenuation') {
+         $attenuation = $newvalue;
+         generateAudioData();
       } elsif ($setting eq 'ratecorrection') {
          $ratecorrection = $newvalue;
          generateAudioData();
@@ -143,7 +152,7 @@ while (<SI>) {
 
    foreach my $ch (split(//, $chars)) {
       last if $abortpending;
-
+      my $pulses = 0;
       my $elmseq = $charcodes{lc($ch)};
 
       if (!defined $elmseq) {
@@ -152,23 +161,23 @@ while (<SI>) {
       }
 
       foreach my $element (split(//, $elmseq)) {
-         if ($element eq '.') {
-	    playdot();
-         } elsif ($element eq '-') {
-	    playdash();
-	 } else { # intercharacter space
-	    playspace();
-         }
-      }   
+         playelement($element);
 
-      playextraspace();
+         if ($element eq '-') {
+	         $pulses += $dashweight + 1;
+         } else {
+            $pulses += 2;
+         }
+      }
+
+      playelement('_'); # extra inter-character spacing
       
       if ($ch eq ' ') {
+         print "\n" if $verbose;
          $pulses -= ($extrawordspaces * 2); # extra time doesn't contribute to copied pulse count
       }
 
       push @charendtimereports, "$ch\t$expectedplayendtime\t$pulses\n";
-      $pulses = 0;
 
       # don't let audio buffer get too far ahead
       while ($expectedplayendtime > time() + $bufferinglimit) {
@@ -179,9 +188,9 @@ while (<SI>) {
    # end of input line
    unless ($text) {
       # record a notional end time of an interword space
-      my $notionalplayendtime = $expectedplayendtime + $charsilenceduration * 2 + $extracharsilenceduration;
+      my $notionalplayendtime = $expectedplayendtime + $pulse * 4 + $extrachar;
       push @charendtimereports, " \t$notionalplayendtime\t4\n";
-      clearbuffer(); # allow to flush
+      playelement('|'); # flush buffer
    }
 
    open(STATS, ">> $mp2statsfile");
@@ -201,26 +210,40 @@ sub CreateElement {
    my $beeppulses = shift;
    my $freq = shift;
    my $beep = Audio::Data->new(rate=>$bitrate);
+
+   my $risetime = 3.0 / $tonefreq;
+   $risetime = 0.0075 if $risetime < 0.0075;
+   $risetime = $pulse/4 if $risetime > $pulse/4;
+
    my $duration = $beeppulses * $pulse + $risetime; # time start/stop from "half amplitude" points
    $beep->tone($freq * $ratecorrection, $duration / $ratecorrection, $amplitude);
 
-   @beepdata = $beep->data;
-   $samples = scalar(@beepdata);
+   my @beepdata = $beep->data;
+   my $samples = scalar(@beepdata);
+   my $risecnt = $risetime * $bitrate;
 
-   for ($i = 0; $i < $risecnt; $i++) {
+   for (my $i = 0; $i < $risecnt; $i++) {
       $beepdata[$i] *= ($i / $risecnt);
       $beepdata[$samples-$i-1] *= ($i / $risecnt);
    }
 
    $beep->data(@beepdata);
 
-   $silence = Audio::Data->new(rate=>$bitrate);
-   $silenceduration = $pulse - $risetime;
+   my $silence = Audio::Data->new(rate=>$bitrate);
+   my $silenceduration = $pulse - $risetime;
    $silence->silence($silenceduration / $ratecorrection);
 
    my $wholeelement = $beep . $silence;
 
    return $wholeelement;
+}
+
+sub CreateSilence {
+   my $silenceduration = shift;
+
+   my $silence = Audio::Data->new(rate=>$bitrate);
+   $silence->silence($silenceduration / $ratecorrection);
+   return $silence;
 }
 
 sub safeplay {
@@ -240,74 +263,31 @@ sub safeplay {
       $brokenpipe = undef;
 }
 
-sub playdot {
-   print '.' if $verbose;
-   safeplay($svr, $wholedot);
-   $expectedplayendtime += ($wholedot->duration * $ratecorrection);
-   $pulses += 2;
-}
-
-sub playdash {
-   print '-' if $verbose;
-   safeplay($svr, $wholedash);
-   $expectedplayendtime += ($wholedash->duration * $ratecorrection);
-   $pulses += ($dashweight + 1);
-}
-
-sub playspace {
-   print '_'  if $verbose;
-   safeplay($svr, $charsilence);
-   $expectedplayendtime += $charsilenceduration;
-   $pulses += 2;
-}
-
-sub playextraspace {
-   print "\n" if $verbose;
-   safeplay($svr, $extracharsilence);
-   $expectedplayendtime += $extracharsilenceduration;
-}
-
-sub clearbuffer {
-   print '|'  if $verbose;
-   safeplay($svr, $bufferclearsilence);
-   $expectedplayendtime += $bufferclearsilenceduration;
+sub playelement {
+   my $element = shift;
+   print $element if $verbose;
+   safeplay($svr, $elements->{$element});
+   my $duration = $elements->{$element}->duration * $ratecorrection;
+   $expectedplayendtime += $duration;
 }
 
 sub generateAudioData {
-$pulse = 1.2/$wpm;
+   $pulse = 1.2/$wpm;
 
-$risetime = 3.0 / $tonefreq;
-$risetime = 0.0075 if $risetime < 0.0075;
-$risetime = $pulse/4 if $risetime > $pulse/4;
-$risecnt = $risetime * $bitrate;
+   # average 5 letters + 1 space per standard word
+   $extrachar = 60 / 6 * (1.0 / $effwpm - 1.0 / $wpm);
+   $extrachar = 0 unless $extrachar > 0;
+   my $freqshiftfactor = 2.0 ** ($pitchshift / 24);
+   $amplitude = 0.5 * 0.1 ** ($attenuation/20);
 
-# average 5 letters + 1 space per standard word
-$extrachar = 60 / 6 * (1.0 / $effwpm - 1.0 / $wpm);
-$extrachar = 0 unless $extrachar > 0;
+   if ($verbose) {
+      printf "WPM=%i, Effective WPM=%i, pulse=%ims, freq shift factor=%5.3f, amplitude=%5.3f\n", $wpm, $effwpm, $pulse*1000, $freqshiftfactor, $amplitude;
+   }
 
-$amplitude = 0.5 * 0.1 ** ($attenuation/20);
-
-if ($verbose) {
-   printf "WPM=%i, Effective WPM=%i, pulse=%ims, risetime=%ims, amplitude=%5.3f\n", $wpm, $effwpm, $pulse*1000, $risetime*1000, $amplitude;
-}
-
-$freqshiftfactor = 2.0 ** ($pitchshift / 24);
-
-$wholedot = CreateElement(1, $tonefreq * $freqshiftfactor);
-$wholedash = CreateElement($dashweight, $tonefreq / $freqshiftfactor);
-
-$charsilence = Audio::Data->new(rate=>$bitrate);
-$charsilence->silence($pulse * 2 / $ratecorrection);
-
-$extracharsilence = Audio::Data->new(rate=>$bitrate);
-$extracharsilence->silence($extrachar / $ratecorrection);
-
-# ensure at least 200ms of silence at end of playing sequence
-$bufferclearsilence = Audio::Data->new(rate=>$bitrate);
-$bufferclearsilenceduration = 0.2;
-$bufferclearsilence->silence($bufferclearsilenceduration / $ratecorrection);
-
-$charsilenceduration = $charsilence->duration * $ratecorrection;
-$extracharsilenceduration = $extracharsilence->duration * $ratecorrection;
+   $elements->{'.'} = CreateElement(1, $tonefreq * $freqshiftfactor);
+   $elements->{'-'} = CreateElement($dashweight, $tonefreq / $freqshiftfactor);
+   $elements->{' '} = CreateSilence($pulse * 2);
+   $elements->{'_'} = CreateSilence($extrachar);
+   $elements->{'|'} = CreateSilence(0.2); # 200ms to clear buffer
 }
 
