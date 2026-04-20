@@ -1,124 +1,124 @@
 <html><body>
-	<h1>Morse Practice Application</h1>
+<h1>Morse Practice Application</h1>
 
-	<p> This computer application has been created by Colin Berry (M0GXV) to help you to learn and improve your proficiency in receiving morse code (CW), by enabling you to create exercises to suit your level of expertise. This article explains how it works and how to profitably use it. </p>
+<p> This computer application has been created by Colin Berry (M0GXV) to help you to learn and improve your proficiency in receiving morse code (CW), by enabling you to create exercises to suit your level of expertise. This article explains how it works and how to profitably use it. </p>
 
-	<p> The program is written in perl, which natively runs on Linux and also works on Windows using a suitable implementation, such as "Strawberry Perl". The following perl modules are used, which may need to be installed:
+<p> The program is written in perl, which natively runs on Linux and also works on Windows using a suitable implementation, such as "Strawberry Perl". The following perl modules are used, which may need to be installed:
 
-	<ul>	<li>Tk</li>
-		<li>Audio::Data</li>
-		<li>Audio::Play</li>
-		<li>Time::HiRes</li>
-		<li>IO::Handle</li>
-	</ul></p>
+<ul>	<li>Tk</li>
+<li>Audio::Data</li>
+<li>Audio::Play</li>
+<li>Time::HiRes</li>
+<li>IO::Handle</li>
+</ul></p>
 
-	<p> The application can be downloaded from my <a href="https://github.com/BerryliumProjects/morsepractice.git" target="_blank">BerryliumProjects github repository</a>. If you are a git user, then feel free to amend the program however you want, and possibly even feed back improvements. Otherwise you can download a zip of the files (they are all in a single location) and unpack that locally.  Open the installation directory in a shell and type <pre>perl morsedlg.pl</pre> to run it. </p>
+<p> The application can be downloaded from my <a href="https://github.com/BerryliumProjects/morsepractice.git" target="_blank">BerryliumProjects github repository</a>. If you are a git user, then feel free to amend the program however you want, and possibly even feed back improvements. Otherwise you can download a zip of the files (they are all in a single location) and unpack that locally.  Open the installation directory in a shell and type <pre>perl morsedlg.pl</pre> to run it. </p>
 
-	<p> There is a main dialog, in which you select audio parameters and select a type of exercise, separate dialogs for each exercise type, and a final results window with an analysis of how you performed, both in terms of accuracy and speed of response. In addition, the terminal shell from which perl is launched shows response time analysis detail, and is used in the "visual mental word building" exercise. The main dialog has a set of default settings which you can alter as required. These affect the type of exercise, what words or characters will be included, and how the audio is generated. </p>
+<p> There is a main dialog, in which you select audio parameters and select a type of exercise, separate dialogs for each exercise type, and a final results window with an analysis of how you performed, both in terms of accuracy and speed of response. In addition, the terminal shell from which perl is launched shows response time analysis detail, and is used in the "visual mental word building" exercise. The main dialog has a set of default settings which you can alter as required. These affect the type of exercise, what words or characters will be included, and how the audio is generated. </p>
 <table>
 <tr><td>
-	<h2>Main Dialog</h2>
-   <img src="manual_main.png" class="insetpics" />
+<h2>Main Dialog</h2>
+<img src="manual_main.png" class="insetpics" />
 
-   <p> The first screen you will see allows you to select a type of exercise, and to control how the sound of morse code is created. Various parameters can be set to provide a comfortable listening experience, at a speed to suit you. There are also a couple of features to make differentiating between dits and dahs easier as a beginner. </p>
+<p> The first screen you will see allows you to select a type of exercise, and to control how the sound of morse code is created. Various parameters can be set to provide a comfortable listening experience, at a speed to suit you. There are also a couple of features to make differentiating between dits and dahs easier as a beginner. </p>
 
-	<h3>Keying rate and weight</h3>
-	
-	<p><b>Character WPM</b> determines the fundamental pulse used to time the sounds and gaps between them within a character. This uses the 'PARIS' standard of 50 pulses per average word, including the standard gap following it. This results in a pulse time (length of a dit sound) of (1200 / WPM) milliseconds.</p>
+<h3>Keying rate and weight</h3>
 
-	<p>Note that this is always used irrespective of how words are constructed, even if a natural letter frequency distribution isn't being used. If you wish to use the alternative 'CODEX' timing standard designed for randomly selected letters (60 pulses per average word), increase the <b>Character WPM</b> and <b>Effective WPM</b> by a factor of 1.2.</p>
+<p><b>Character WPM</b> determines the fundamental pulse used to time the sounds and gaps between them within a character. This uses the 'PARIS' standard of 50 pulses per average word, including the standard gap following it. This results in a pulse time (length of a dit sound) of (1200 / WPM) milliseconds.</p>
 
-	<p><b>Dash weight</b> allows the dah sound to be adjusted to be longer or shorter than the standard 3 pulses. It can be fractional. A longer dah sound is easier to differentiate from a dit, and a slightly shorter sound can be used to practice receiving morse sent from a straight-key, where the element lengths can be quite variable and not to the standard timings created by a paddle and keyer.  Alternatively, a longer dah sound mimics how many semi-automatic bug keys often sound. Note that this adjustment will alter the effective communications speed.</p>
-	
-	<h3>Farnsworth and word spacing</h3>
-	
-	<p>When learning to copy at slower speeds, it is recommended to keep the sound of the characters short enough to be recognised as a whole pattern, rather than having to be mentally assembled from dits and dahs. This is achieved by reducing the <b>Effective WPM</b> to below the <b>Character WPM</b>, which increasing the gaps between characters and words. Start out with a <b>Character WPM</b> between 15 and 20, then gradually increase the <b>Effective WPM</b> up to the same speed. </p>
+<p>Note that this is always used irrespective of how words are constructed, even if a natural letter frequency distribution isn't being used. If you wish to use the alternative 'CODEX' timing standard designed for randomly selected letters (60 pulses per average word), increase the <b>Character WPM</b> and <b>Effective WPM</b> by a factor of 1.2.</p>
 
-	<p>The thinking time between characters reduces noticeably as the two speeds converge. Whilst you should aim to become comfortable with the speeds being equal (which results in standard rhythm), an alternative strategy is to increase the <b>Character WPM</b> further, which provides a slight increase in thinking time and trains the ear to recognise the patterns more instinctively.</p>
+<p><b>Dash weight</b> allows the dah sound to be adjusted to be longer or shorter than the standard 3 pulses. It can be fractional. A longer dah sound is easier to differentiate from a dit, and a slightly shorter sound can be used to practice receiving morse sent from a straight-key, where the element lengths can be quite variable and not to the standard timings created by a paddle and keyer.  Alternatively, a longer dah sound mimics how many semi-automatic bug keys often sound. Note that this adjustment will alter the effective communications speed.</p>
 
-	<p>When training without the <b>Sync after each word</b> mode, it can be useful to increase the gap between words for more thinking or typing time, while maintaining proper gaps between characters. Standard timing uses the equivalent of a silent dah or two dits between words, in addition to the inter-character gap. To increase this, specify a positive whole number in <b>Extra word spaces</b>. This adds further silent dahs (4 pulses each). </p>
+<h3>Farnsworth and word spacing</h3>
 
-	<h3>Pitch and volume</h3>
+<p>When learning to copy at slower speeds, it is recommended to keep the sound of the characters short enough to be recognised as a whole pattern, rather than having to be mentally assembled from dits and dahs. This is achieved by reducing the <b>Effective WPM</b> to below the <b>Character WPM</b>, which increasing the gaps between characters and words. Start out with a <b>Character WPM</b> between 15 and 20, then gradually increase the <b>Effective WPM</b> up to the same speed. </p>
 
-	<p>By default, a pitch of 600 Hz is used, but this can be adjusted, perhaps to match your preferred sidetone setting on a transceiver, using <b>Note pitch</b> in Hz. Listening at lower pitches can also help differentiate between closely spaced signals on-air, although very fast code may need a higher pitch. </p>
-	
-	<p> If you initially find it difficult to differentiate between dits and dahs, it is possible to make them sound at slightly different pitches. A positive number in <b>Dash-dot pitch shift</b> will cause dits to sound that number of semitones higher in pitch than dahs, keeping the average pitch the same. Try to eliminate this shift as soon as you can, so you don't become dependent on it. As the speed increases, the shifts can sound quite wild and distracting. </p>
+<p>The thinking time between characters reduces noticeably as the two speeds converge. Whilst you should aim to become comfortable with the speeds being equal (which results in standard rhythm), an alternative strategy is to increase the <b>Character WPM</b> further, which provides a slight increase in thinking time and trains the ear to recognise the patterns more instinctively.</p>
 
-	<p> The volume of note emitted can also be adjusted. <b>Tone volume attenuation</b> reduces the volume by that number of decibels. It is recommended to increase this number until the note is quiet while remaining clearly audible. This discipline also helps to naturally reduce the perception of background noise when listening on-air. If you do this, note that shorter pulse times need more volume to be perceived accurately. </p>
+<p>When training without the <b>Sync after each word</b> mode, it can be useful to increase the gap between words for more thinking or typing time, while maintaining proper gaps between characters. Standard timing uses the equivalent of a silent dah or two dits between words, in addition to the inter-character gap. To increase this, specify a positive whole number in <b>Extra word spaces</b>. This adds further silent dahs (4 pulses each). </p>
 
-  	<p> Having selected the desired audio parameters, click <b>Calibrate</b> to verify them. This will play "PARIS PARIS" at the selected pitch and WPM.</p>
+<h3>Pitch and volume</h3>
 
-   <p> If the program is being run in a virtual machine, it is possible that this could affect the rate of playing sound samples, resulting in the wrong pitch and WPM rates. To detect if this is occurring, try calibrating on a pitch of 440 Hz. If the A note pitch is incorrect (or less reliably, the time between the two words), you can enter a correction rate in <b>Playing rate factor</b>, which will also fix playing speed.</p>
+<p>By default, a pitch of 600 Hz is used, but this can be adjusted, perhaps to match your preferred sidetone setting on a transceiver, using <b>Note pitch</b> in Hz. Listening at lower pitches can also help differentiate between closely spaced signals on-air, although very fast code may need a higher pitch. </p>
+
+<p> If you initially find it difficult to differentiate between dits and dahs, it is possible to make them sound at slightly different pitches. A positive number in <b>Dash-dot pitch shift</b> will cause dits to sound that number of semitones higher in pitch than dahs, keeping the average pitch the same. Try to eliminate this shift as soon as you can, so you don't become dependent on it. As the speed increases, the shifts can sound quite wild and distracting. </p>
+
+<p> The volume of note emitted can also be adjusted. <b>Tone volume attenuation</b> reduces the volume by that number of decibels. It is recommended to increase this number until the note is quiet while remaining clearly audible. This discipline also helps to naturally reduce the perception of background noise when listening on-air. If you do this, note that shorter pulse times need more volume to be perceived accurately. </p>
+
+<p> Having selected the desired audio parameters, click <b>Calibrate</b> to verify them. This will play "PARIS PARIS" at the selected pitch and WPM.</p>
+
+<p> If the program is being run in a virtual machine, it is possible that this could affect the rate of playing sound samples, resulting in the wrong pitch and WPM rates. To detect if this is occurring, try calibrating on a pitch of 440 Hz. If the A note pitch is incorrect (or less reliably, the time between the two words), you can enter a correction rate in <b>Playing rate factor</b>, which will also fix playing speed.</p>
 
 </td></tr>
 <tr><td>
 
-	<h2>Types of exercise </h2>
-   <img src="manual_exercise.png" class="insetpics" />
+<h2>Types of exercise </h2>
+<img src="manual_exercise.png" class="insetpics" />
 
-	<p> Substituting artificial exercises for real-world CW copying carries the risk that the mind learns to be good at the exercise rather than the skill that it is intended to develop. For example, I found that listening and typing in what I heard, created a shortcut between my ears and my fingers which bypassed my consciousness - so didn't move me forward to my aim of improving head-copy.  So it's important to vary the types of exercises to avoid this.</p>
+<p> Substituting artificial exercises for real-world CW copying carries the risk that the mind learns to be good at the exercise rather than the skill that it is intended to develop. For example, I found that listening and typing in what I heard, created a shortcut between my ears and my fingers which bypassed my consciousness - so didn't move me forward to my aim of improving head-copy.  So it's important to vary the types of exercises to avoid this.</p>
 
-	<p> A computer generated exercise can also be just too "perfect", in the sense that doesn't reflect on-air listening, with noise, fading, distraction from other signals, variations in timing and of course human error. Computerised morse readers can also struggle in these conditions, yet it is possible with practice and experience for the human ear and mind to do better. To achieve this, it is also important to expose yourself to real on-air listening, both at a speed you can mostly understand and also in conditions where you struggle. This experience will inform what sort of exercises would be of benefit. </p>
+<p> A computer generated exercise can also be just too "perfect", in the sense that doesn't reflect on-air listening, with noise, fading, distraction from other signals, variations in timing and of course human error. Computerised morse readers can also struggle in these conditions, yet it is possible with practice and experience for the human ear and mind to do better. To achieve this, it is also important to expose yourself to real on-air listening, both at a speed you can mostly understand and also in conditions where you struggle. This experience will inform what sort of exercises would be of benefit. </p>
 
-   <p> Each type of exercise has options appropriate to it. These are explained later. </p>
+<p> Each type of exercise has options appropriate to it. These are explained later. </p>
 
-	<h3>Single characters</h3>
+<h3>Single characters</h3>
 
-	<p> This exercise can be used in several ways. If you have no knowledge of morse code at all, type some characters into the entry box and click <b>Play</b>. Listen to how they sound, separately and in combination. This is a great way to start to learn the code as sound patterns first rather than printed dashes and dots. </p>
+<p> This exercise can be used in several ways. If you have no knowledge of morse code at all, type some characters into the entry box and click <b>Play</b>. Listen to how they sound, separately and in combination. This is a great way to start to learn the code as sound patterns first rather than printed dashes and dots. </p>
 
-	<p> To systematically learn to use morse code, you could select some characters in the  <b>Characters to practise</b> list, having selected a low effective wpm in the audio dialog (the "Farnsworth method" of learning). If you want to learn following the classic "Koch method", you can get an introduction to the character set being used by entering a positive number in <b>Koch method level</b>, which can be used as a prelude to the random sequences exercise. </p> 
+<p> To systematically learn to use morse code, you could select some characters in the  <b>Characters to practise</b> list, having selected a low effective wpm in the audio dialog (the "Farnsworth method" of learning). If you want to learn following the classic "Koch method", you can get an introduction to the character set being used by entering a positive number in <b>Koch method level</b>, which can be used as a prelude to the random sequences exercise. </p> 
 
-   <p> If you enter a character incorrectly, it will repeat the same character one more time.</p>
+<p> If you enter a character incorrectly, it will repeat the same character one more time.</p>
 
-	<h3>Random sequences</h3>
+<h3>Random sequences</h3>
 
-   <p> This is similar to the Single Characters mode, but characters are grouped with proper spacing between them, with a pause at the end for you to type back what you heard. </p>
+<p> This is similar to the Single Characters mode, but characters are grouped with proper spacing between them, with a pause at the end for you to type back what you heard. </p>
 
-	<p> If you want characters to reflect their frequency in English, select <b>Use relative frequencies</b>. In Koch mode, this instead puts more emphasis on the most recently learned characters. You can see the effect of this in the <b>Extra character weights</b> field, which can also be adjusted directly. </p>
+<p> If you want characters to reflect their frequency in English, select <b>Use relative frequencies</b>. In Koch mode, this instead puts more emphasis on the most recently learned characters. You can see the effect of this in the <b>Extra character weights</b> field, which can also be adjusted directly. </p>
 
-	<p> Although you can type as soon as you recognise a character pattern, I recommend not starting to type until the end of the 2nd character, to give proper processing time and to practice hearing, thinking and typing concurrently rather than sequentially - you won't have time to do that beyond an unrealistically slow speed. </p>
+<p> Although you can type as soon as you recognise a character pattern, I recommend not starting to type until the end of the 2nd character, to give proper processing time and to practice hearing, thinking and typing concurrently rather than sequentially - you won't have time to do that beyond an unrealistically slow speed. </p>
 
-	<p> As well as random characters, other exercise types apply structure to the sequences, which helps with recognising and remembering patterns within words, enabling longer words to be mentally assembled. </p>
+<p> As well as random characters, other exercise types apply structure to the sequences, which helps with recognising and remembering patterns within words, enabling longer words to be mentally assembled. </p>
 
-	<h3>Phonemes</h3>
+<h3>Phonemes</h3>
 
-	<p> Each collection of vowel letters making up a valid vowel sound (for example 'ea'), and each combination of consonant letters making up a valid consonant or group (for example 'str') is referred to as a phoneme, an elementary component of speech. </p>
+<p> Each collection of vowel letters making up a valid vowel sound (for example 'ea'), and each combination of consonant letters making up a valid consonant or group (for example 'str') is referred to as a phoneme, an elementary component of speech. </p>
 
-	<p>The common phonemes can be recognised as sub-sequences within a word when copying morse code, and this makes mentally building up the word easier. This exercise practices them in isolation; the Pseudo Words exercise groups them.  </p>
+<p>The common phonemes can be recognised as sub-sequences within a word when copying morse code, and this makes mentally building up the word easier. This exercise practices them in isolation; the Pseudo Words exercise groups them.  </p>
 
-   <h3>Pseudo Words</h3>
+<h3>Pseudo Words</h3>
 
-	<p> English words are mostly composed by alternating vowel phonemes with consonant phonemes, for example sch-oo-l. When first moving from random character recognition to words, ideas with a recognisable meaning tend to distract from keeping up, as the mind wants to visualise the word's meaning. The excitement and sense of achievement at recognising a word can also make you lose flow.  As an aid to avoiding such distraction, it can be helpful to create sequences which follow the expected phoneme-alternation pattern, but which aren't meaningful words. This helps the mind to stop trying to look for meaning, as none is expected, yet the skill of phoneme recognition is still being developed. </p>
+<p> English words are mostly composed by alternating vowel phonemes with consonant phonemes, for example sch-oo-l. When first moving from random character recognition to words, ideas with a recognisable meaning tend to distract from keeping up, as the mind wants to visualise the word's meaning. The excitement and sense of achievement at recognising a word can also make you lose flow.  As an aid to avoiding such distraction, it can be helpful to create sequences which follow the expected phoneme-alternation pattern, but which aren't meaningful words. This helps the mind to stop trying to look for meaning, as none is expected, yet the skill of phoneme recognition is still being developed. </p>
 
-	<p> Pseudo-words can start with either a vowel or consonant element. Each element is categorised as to whether it can meaningfully appear at the beginning, middle or end of a word, to make the compositions seem more realistic.</p>
+<p> Pseudo-words can start with either a vowel or consonant element. Each element is categorised as to whether it can meaningfully appear at the beginning, middle or end of a word, to make the compositions seem more realistic.</p>
 
-	<p> Caution: artificially invented pseudo-words are not checked to ensure they are (or sound) meaningless. It is possible to get sequences which resemble dictionary words (even rude ones!), but this is simply due to randomness. The same coincidence can of course occur with purely random letter sequences, but the likelihood is much less. </p>
+<p> Caution: artificially invented pseudo-words are not checked to ensure they are (or sound) meaningless. It is possible to get sequences which resemble dictionary words (even rude ones!), but this is simply due to randomness. The same coincidence can of course occur with purely random letter sequences, but the likelihood is much less. </p>
 
-	<h3>Numbers</h3>
+<h3>Numbers</h3>
 
-   <p> This is similar to the random sequences exercise, but the group of characters relates to how numbers are represented. Note that it is common to use "R" to mean a decimal point (it sounds like an abbreviation of the longer full stop character). </p>
+<p> This is similar to the random sequences exercise, but the group of characters relates to how numbers are represented. Note that it is common to use "R" to mean a decimal point (it sounds like an abbreviation of the longer full stop character). </p>
 
-	<h3>Callsigns</h3>
+<h3>Callsigns</h3>
 
-	<p> A very useful skill is copying down callsigns. Their specific structure helps with memory, and also they are sent frequently so that they can be copied in stages (first 3 characters, then last 3 on the next repetition). </p>
+<p> A very useful skill is copying down callsigns. Their specific structure helps with memory, and also they are sent frequently so that they can be copied in stages (first 3 characters, then last 3 on the next repetition). </p>
 
-	<p> The simplest exercise does not include the '/' character and restricts the prefix to a list of common european ones. Options enable more complex possibilities. </p>
+<p> The simplest exercise does not include the '/' character and restricts the prefix to a list of common european ones. Options enable more complex possibilities. </p>
 
- 	<h3>Common words</h3>
-	
-	<p> This is an alternative to choosing words from the main dictionary.  The 100 most common English words, irrespective of length, are included (the longest is 7 characters - 'because'). You can also filter these using <b>Min word length</b> and <b>Max word length</b>. This exercise is good for helping develop natural rag-chew type interaction.</p>
+<h3>Common words</h3>
 
-	<p> Quite a few of these words have established abbreviations (such as fer, cud and es), which you can practice in the QSO terms exercise. </p>
+<p> This is an alternative to choosing words from the main dictionary.  The 100 most common English words, irrespective of length, are included (the longest is 7 characters - 'because'). You can also filter these using <b>Min word length</b> and <b>Max word length</b>. This exercise is good for helping develop natural rag-chew type interaction.</p>
 
-   <h3>Dictionary words</h3>
+<p> Quite a few of these words have established abbreviations (such as fer, cud and es), which you can practice in the QSO terms exercise. </p>
 
-	<p> This enables you to practice assembling real words with identifiable meanings. Over 4000 words are possible, but most of them are quite long and so more difficult to assemble. There are two approaches to make this exercise more achievable for a beginner. You can choose the minimum and maximum word lengths (defaults are 1 to 6); and you can also optionally restrict to studying the overall sound of a small selection of words of similar difficulty.</p>
+<h3>Dictionary words</h3>
 
-	<p> Both of these criteria are applied when selecting words. You can set the maximum length you are comfortable with - you will forget the first part of the word beyond a certain length, which you can practise to increase over time. You can also set the minimum length if you wish, but it is best to avoid setting it the same as the maximum - you will very quickly adapt to expecting a certain number of characters and will mentally pace yourself. Real language doesn't work like that! </p>
+<p> This enables you to practice assembling real words with identifiable meanings. Over 4000 words are possible, but most of them are quite long and so more difficult to assemble. There are two approaches to make this exercise more achievable for a beginner. You can choose the minimum and maximum word lengths (defaults are 1 to 6); and you can also optionally restrict to studying the overall sound of a small selection of words of similar difficulty.</p>
 
-	<p> To focus on a small set of words to learn their sounds by repetition, first specify a positive index number in <b>Dictionary sample offset</b> and the possible number of alternative words in <b>Dictionary sample size</b>. The dictionary is sequenced in order of increasing difficulty, which I have defined as firstly number of characters, then number of morse code elements (dits and dahs). So for example 'we' is before 'up' (longer morse pattern) which is before 'tea' (longer word even though less elements). Therefore you should leave the word length range unconstrained for this exercise. </p>
+<p> Both of these criteria are applied when selecting words. You can set the maximum length you are comfortable with - you will forget the first part of the word beyond a certain length, which you can practise to increase over time. You can also set the minimum length if you wish, but it is best to avoid setting it the same as the maximum - you will very quickly adapt to expecting a certain number of characters and will mentally pace yourself. Real language doesn't work like that! </p>
 
-<p> If you are having difficulty recognising certain letters quickly enough, you can focus the selection of words on those which contain at least one of the characters in <b>Include words</b>.</p>
+<p> To focus on a small set of words to learn their sounds by repetition, first specify a positive index number in <b>Dictionary sample offset</b> and the possible number of alternative words in <b>Dictionary sample size</b>. The dictionary is sequenced in order of increasing difficulty, which I have defined as firstly number of characters, then number of morse code elements (dits and dahs). So for example 'we' is before 'up' (longer morse pattern) which is before 'tea' (longer word even though less elements). Therefore you should leave the word length range unconstrained for this exercise. </p>
+
+<p> If you are having difficulty recognising certain letters quickly enough, you can focus the selection of words on those which contain at least one of the characters in <b>Include characters</b>.</p>
 
 	<h3>QSO terms</h3>
 
@@ -322,4 +322,6 @@
 
 </tr></td>
 </table>
+
+</body></html>
 
