@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>8;
+use Test::Simple tests=>9;
 use playerclient;
 use Data::Dumper;
 
@@ -17,6 +17,9 @@ ok(1, 'play cq cq dx');
 $pc->writePlayer('cq cq');
 $pc->syncflush;
 $pc->writePlayer('dx');
+ok(1, 'play at slower rate');
+$pc->adjustSpeed(18,12);
+$pc->writePlayer('qrs pse');
 $pc->closePlayer;
 ok(!(defined $pc->{MP}), 'player closed');
 
@@ -27,8 +30,8 @@ $e->{pitchshift} = 1;
 ok(1, 'play calibration test with pitch shift 1 semitone');
 PlayerClient->calibrate($e);
 
-$e->{playratefactor} = 1.5;
-ok(1, 'play calibration test with 1.5 play rate adjustment');
+$e->{playratefactor} = 1.1;
+ok(1, 'play calibration test with 1.1 play rate adjustment');
 PlayerClient->calibrate($e);
 
 ok(1, 'play calibration test with default standard settings');

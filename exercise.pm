@@ -242,6 +242,7 @@ sub validateSettings {
 
    if (! $e->{syncafterword}) {
       $e->{retrymistakes} = 0; # can't retry unless syncing after each word
+      $e->{autoincrement} = 0; # can only change speed at pauses
    }
 
    unless ($e->{practicetime} =~ /^[\d\.]+$/ and $e->{practicetime} > 0){
@@ -362,8 +363,28 @@ sub checkword {
          if (($userword ne $testword) and $e->{retrymistakes}) {
             $self->{dlg}->{d}->insert('end', '# ');
             $testword = $self->{twg}->chooseWord(1); # extra retry
+
+            if ($e->{autoincrement}) {
+               if ($e->{effwpm} eq $e->{wpm}) {
+                  # if still in farnsworth mode, just stretch the gaps but leave the character speed the same
+                  # note that consistent failing will continue to reduce both without limit
+                  $e->{wpm}--;
+               }
+
+               $e->{effwpm}--;
+               $self->{MP}->adjustSpeed($e->{wpm}, $e->{effwpm});
+            }
          } else {
             $testword = $self->{twg}->chooseWord;
+
+            if ($e->{autoincrement}) {
+               if ($e->{effwpm} eq $e->{wpm}) {
+                  $e->{wpm}++; # once extra spacing is removed, increase character speed as well
+               }
+
+               $e->{effwpm}++;
+               $self->{MP}->adjustSpeed($e->{wpm}, $e->{effwpm});
+            }
          }
 
          $self->{MP}->writePlayer($testword);

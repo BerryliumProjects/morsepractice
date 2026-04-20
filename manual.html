@@ -214,13 +214,17 @@
 
    <h3> Sync after each word </h3>
 
-   <p> This option causes an exercise initiated by the Start button to pause after each word, rather than be free-running. It will cause the two measures of achieved speed to diverge, as one relates to accuracy and the other to quantity. Whilst providing immediate feedback of correctness, you need to disable it to practice the automatic and integrated mental processes of concurrently listening, decoding and recording, and to learn to "let go and keep up" when you stumble or get distracted. </p> 
+   <p> This option causes an exercise initiated by the Start button to pause after each word, rather than be free-running. As this introduces extra delays between words, the <b>Paris WPM</b> statistic will reduce. Whilst providing immediate feedback of correctness, you can disable this option to practice the automatic and integrated mental processes of concurrently listening, decoding and recording, and to learn to "let go and keep up" when you stumble or get distracted. </p> 
 
 	<p> In real life, the sender doesn't wait for each word to be recognised and recorded before moving on, although if very understanding, may leave extra time between words, which you can also simulate with extra word spaces. In this case, you could try to wait until the next word starts before typing the previous one, to practice overlapping those activities. </p>
 
 	<p> A key skill here is to stay calm and be prepared to let go of characters if it would otherwise mean getting behind the natural flow. Trying to finish the previous word will result in missing the start of the next word. The start of words carries more meaning than the ends in English, and the word sense will be lost if the start is missing. It is also more difficult to pick up in the middle of a word. </p>
 
-	<p> You may notice that the sending speed appears to get quicker after a while. This is an illusion caused by your brain slowing down.  If you carry on, it seems to adapt to the demands of concentration and the effect passes. </p>
+   <h3>Auto-increment speed </h3>
+
+   <p> This is only available if <b>Sync after each word</b> is also selected. It adjusts the morse playing speed by one word per minute after each input, depending on whether you copied correctly.  If the effective WPM is less than the character WPM then this changes the effective WPM up or down while keeping the character WPM constant. Once effective WPM becomes the same as character WPM, it changes behaviour to adjust both up or down. </p> 
+
+	<p> Even if this option is not selected, you may notice that the sending speed appears to get quicker after a while. This is an illusion caused by your brain slowing down.  If you carry on, it seems to adapt to the demands of concentration and the effect may reduce. </p>
 
    <h3> Allow backspace </h3>
 
@@ -270,11 +274,13 @@
 
 	<p> <b>Achieved paris wpm</b> is an indication of how much information is being processed successfully, based on the number of pulses in the words played. Longer pauses between words, as well as typing time if waiting for each word to be input, will reduce this statistic.</p>
 
-	<p> <b>Achieved character wpm</b> is an alternative indication of attained speed, based on how accurately characters are being copied, at the effective wpm specified. It is not affected by typing time if waiting for each word to be entered, and also not affected by character length; so is likely to be an overstatement of capability. </p>
+	<p> <b>Final effective wpm</b> shows how fast morse was being played by the end of the exercise. This is meaningful if <b>Auto-increment speed</b> is selected, as this increases the effective wpm on successful inputs. </p>
 
 	<p> <b>Relative character weight</b> shows the actual average character length (in pulses) compared to that assumed in the PARIS standard. Random characters including punctuation and numbers will result in a factor over 100%. It is difficult to copy very short characters (E being the hardest) as thinking and typing speed is unlikely to keep up,  but also hard to recognise very long sequences such as punctuation. Suitable exercises of both these extremes are useful.</p>
 
 	<p> <b>Inter-character pause factor</b> shows how much inter-character gaps are longer than the standard.  Having an effective wpm lower than character wpm will give a positive value here. </p>
+
+   <p> <b>Composite score</b> is a subjective indication of how well you did in the this exercise run, and takes account of final achieved effective WPM, average word length, and accuracy. If you have attempted the same type of exercise more than once in a row, a personal best score for the exercise sequence is also shown. This is reset after changing the exercise type but not if you only adjust parameters. </p> 
 
 	<p> <b>Marked test words </b> shows the details of what you entered compared to what was played. Incorrect words will be marked with a # and the correct word shown. Look for any patterns you can work on.  Be aware that alignment of words and characters may fail unless errors are spaced well apart. </p>
 

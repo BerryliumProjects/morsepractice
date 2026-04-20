@@ -33,7 +33,7 @@ sub show {
    $re->{missedchars} = join('', @{$res->{missedchars}->keys});
    $re->{mistakenchars} = join('', @{$res->{mistakenchars}->keys});
    $re->{pariswpm} = sprintf('%.1f', ($res->{pulsecount} / 50) * $charsuccessrate / ($res->{duration} / 60)); # based on elements decoded
-   $re->{charswpm} = sprintf('%.1f', ($e->{effwpm} * $charsuccessrate)); # based on characters decoded
+   $re->{finalwpm} = sprintf('%d', ($e->{effwpm})); # effwpm achieved if auto-incremented
    $re->{relcharweight} = sprintf('%i%%', $avgpulsecnt / (50 / 6) * 100); # as percentage
 
    my $stdcharpausetime = 2 * 1.2 / $e->{wpm}; # 2 pulses
@@ -70,7 +70,7 @@ sub populateresultswindow1 { # for character timings
    $rwdf->addEntryField('Missed characters', 'missedchars', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Mistaken characters', 'mistakenchars', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Achieved paris wpm', 'pariswpm', 30, undef, undef, undef, '');
-   $rwdf->addEntryField('Achieved character wpm', 'charswpm', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Final effective wpm', 'finalwpm', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Composite Score', 'score', 30, undef, undef, undef, '');
@@ -89,7 +89,7 @@ sub populateresultswindow2 { # for whole word timings
    $rwdf->addEntryField('Missed characters', 'missedchars', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Mistaken characters', 'mistakenchars', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Achieved paris wpm', 'pariswpm', 30, undef, undef, undef, '');
-   $rwdf->addEntryField('Achieved character wpm', 'charswpm', 30, undef, undef, undef, '');
+   $rwdf->addEntryField('Final effective wpm', 'finalwpm', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Relative character weight', 'relcharweight', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Inter-character pause factor', 'charpausefactor', 30, undef, undef, undef, '');
    $rwdf->addEntryField('Composite Score', 'score', 30, undef, undef, undef, '');

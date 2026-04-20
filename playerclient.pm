@@ -154,5 +154,16 @@ sub syncflush {
    unlink($mp2readyfile) if -f $mp2readyfile;
 }
 
+sub adjustSpeed {
+   my $self = shift;
+   my $wpm = shift;
+   my $effwpm = shift;
+
+   die unless defined($self->{MP});
+
+   print {$self->{MP}} "# wpm $wpm\n";
+   print {$self->{MP}} "# effwpm $effwpm\n";
+}
+
 1;
 

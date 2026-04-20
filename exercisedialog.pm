@@ -38,7 +38,7 @@ sub show {
    # initialise all possible exercise parameters - change type to visible if required
    my @stringexfields = qw/extype practicetime keylist xweights AutoExtraWeights includechars/;
    my @numexfields = qw/kochlevel minwordlength maxwordlength wordlistsize dictsize dictoffset repeatcnt
-      userelfreq syncafterword allowbackspace measurecharreactions retrymistakes usespecified usescalls useicalls europrefix sessionPB/;
+      userelfreq syncafterword autoincrement allowbackspace measurecharreactions retrymistakes usespecified usescalls useicalls europrefix sessionPB/;
    my @inheritedfields = qw/wpm effwpm pitch attenuation pitchshift playratefactor dashweight extrawordspaces/;
 
    foreach my $fname (@stringexfields, @inheritedfields) {
@@ -94,6 +94,7 @@ sub show {
 
    if ($extype ne 'Single characters') {
       $xwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
+      $xwdf->addCheckbuttonField('Auto-increment speed', 'autoincrement',  0);
       $xwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
    } else { 
       $e->{syncafterword} = 1;
