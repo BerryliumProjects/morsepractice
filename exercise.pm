@@ -360,9 +360,13 @@ sub checkword {
          my $testword = $self->{twg}->{prevword};
          my $userword = $self->{userwordinput}->wordtext;
 
-         if (($userword ne $testword) and $e->{retrymistakes}) {
-            $self->{dlg}->{d}->insert('end', '# ');
-            $testword = $self->{twg}->chooseWord(1); # extra retry
+         if ($userword ne $testword) {
+            if ($e->{retrymistakes}) {
+               $self->{dlg}->{d}->insert('end', '# ');
+               $testword = $self->{twg}->chooseWord(1); # extra retry
+            } else {
+               $testword = $self->{twg}->chooseWord;
+            }
 
             if ($e->{autoincrement}) {
                if ($e->{effwpm} eq $e->{wpm}) {
