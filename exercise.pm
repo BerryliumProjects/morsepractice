@@ -171,6 +171,8 @@ sub prepareTest {
    return if $e->{running};
 
    $e->{autoextraweights} = '';
+   $e->{wpm} = $e->{initwpm};
+   $e->{effwpm} = $e->{initeffwpm};
 
    $self->{twg} = TestWordGenerator->new($e->{minwordlength}, $e->{maxwordlength}, $e->{repeatcnt});
    my $extype = $e->{extype};

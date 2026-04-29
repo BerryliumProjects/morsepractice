@@ -43,8 +43,8 @@ sub init {
    $lb->selectionSet(0);
    $self->{e}->{exercisetype} = 'Single characters';
 
-   $mwdf->addEntryField('Character WPM', 'wpm', 40, 20, 'w');
-   $mwdf->addEntryField('Effective WPM', 'effwpm', 40, 20);
+   $mwdf->addEntryField('Character WPM', 'initwpm', 40, 20, 'w');
+   $mwdf->addEntryField('Effective WPM', 'initeffwpm', 40, 20);
    $mwdf->addEntryField('Note pitch', 'pitch', 40, 600);
    $mwdf->addEntryField('Tone volume attenuation (dB)', 'attenuation', 40, '10');
    $mwdf->addEntryField('Dash-dot pitch shift (semitones)', 'pitchshift', 40, '0');

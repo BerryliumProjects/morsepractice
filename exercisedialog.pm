@@ -38,8 +38,9 @@ sub show {
    # initialise all possible exercise parameters - change type to visible if required
    my @stringexfields = qw/extype practicetime keylist xweights AutoExtraWeights includechars/;
    my @numexfields = qw/kochlevel minwordlength maxwordlength wordlistsize dictsize dictoffset repeatcnt
-      userelfreq syncafterword autoincrement allowbackspace measurecharreactions retrymistakes usespecified usescalls useicalls europrefix sessionPB/;
-   my @inheritedfields = qw/wpm effwpm pitch attenuation pitchshift playratefactor dashweight extrawordspaces/;
+      userelfreq syncafterword autoincrement allowbackspace measurecharreactions retrymistakes
+      usespecified usescalls useicalls europrefix sessionPB wpm effwpm/;
+   my @inheritedfields = qw/initwpm initeffwpm pitch attenuation pitchshift playratefactor dashweight extrawordspaces/;
 
    foreach my $fname (@stringexfields, @inheritedfields) {
       $xwdf->addHiddenField('', $fname, '');
