@@ -221,19 +221,6 @@ sub exwindowcallback {
    }
 }
 
-sub startexercise {
-   my $self = shift;
-   print "Start button clicked\n";
-   $self->setControlState('disabled');
-}
-
-sub finishexercise {
-   my $self = shift;
-   print "Finish button clicked\n";
-   $self->setControlState('normal');
-   print "End of activity\n";
-}
-
 sub setControlState {
    my $self = shift;
    my $state = shift;

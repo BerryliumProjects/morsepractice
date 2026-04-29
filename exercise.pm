@@ -3,46 +3,18 @@ use strict;
 use warnings;
 package Exercise;
 
-#use Tk;
-#use Tk::ROText;
-#use Tk::DialogBox;
-
 use Data::Dumper;
-#use Tk::After;
 use IO::Handle;
 use Time::HiRes qw(time usleep);
 
 use lib '.';
 
-#use dialogfields;
 use testwordgenerator;
 use histogram;
-#use maindialog;
-#use exercisedialog;
 use resultsdialog;
 use word;
 use results;
 use playerclient;
-
-# constants
-my $defaultreaction = 0.5; # seconds - used if realignment results in < minimum
-my $minimumreaction = 0.25; # seconds - below this is suspicious unless character is correct
-my $mp2readyfile = '/var/tmp/mp2ready.txt';
-my $mp2pidfile = '/var/tmp/mp2pid.txt';
-my $mp2statsfile = '/var/tmp/mp2stats.txt';
-my $morseplayer = "./morseplayer2.pl";
-
-# global variables
-unlink($mp2pidfile) if -f $mp2pidfile;
-# validateSettings();
-# setexweights();
-
-# $e->{keylist} = join('', sort keys(%charcodes));
-# $e->{keylist} =~ s/ //; # remove blank as an option
-
-# $mdlg->setControlState('normal');
-# $mdlg->show;
-# exit 0;
 
 sub init {
    my $class = shift;
@@ -62,91 +34,13 @@ sub init {
    return $self;
 }
 
-sub openPlayer {
-die "Tried to access Exercise::openPlayer"; 
-   my $self = shift;
-   my $textmode = shift;
-
-   my $e = $self->{dlg}->{e};
-
-   die "Opening Player when already connected"  if defined($self->{MP});
-
-   my @audiofields = qw/wpm effwpm pitch playratefactor dashweight extrawordspaces attenuation pitchshift/;
-   my $textswitch = $textmode ? '-t' : '';
-   my %ehash = %{$e}; # simplifies taking a slice of the values
-   my $openargs = join(' ', @ehash{@audiofields}, $textswitch);
-   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
-
-   defined($self->{MP}) or die "Player pipe filehandle not defined";
-   autoflush {$self->{MP}} 1;
-}
-
-sub openStandardPlayer {
-die "tried to access Exercise::openStandardPlayer";
-   my $self = shift;
-   my $e = $self->{dlg}->{e};
-
-   die "Opening Player when already connected"  if defined($self->{MP});
-
-   my $openargs = join(' ', 20, 20, 440, $e->{playratefactor}, 3, 0, 10, 0);
-   open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
-
-   defined($self->{MP}) or die "Player pipe filehandle not defined";
-   autoflush {$self->{MP}} 1;
-}
-
-sub closePlayer {
-die "tried to access Exercise::closePlayer";
-   my $self = shift;
-   my $force = shift;
-
-   my $e = $self->{dlg}->{e};
-
-   return unless defined($self->{MP});
-
-   if ($force) {
-      open(PIDFILE, $mp2pidfile);
-      my $mp2pid = <PIDFILE>;
-      close(PIDFILE);
-
-      chomp($mp2pid);
-
-      kill('SIGTERM', $mp2pid); # ask player to terminate early
-      unlink($mp2pidfile);
-   } else {
-      print {$self->{MP}} "#\n";
-   }
-
-   close($self->{MP});
-   $self->{MP} = undef;
-   $self->syncflush;
-}
-
-sub writePlayer {
-die "tried to access Exercise::writePlayer";
-
-   my $self = shift;
-   my $text = shift;
-
-   my $e = $self->{dlg}->{e};
-
-   die unless defined($self->{MP});
-
-   print {$self->{MP}} "$text\n";
-}
-
 sub setkochlevel {
    my $self = shift;
    my $e = $self->{dlg}->{e};
    return if $e->{running};
 
    $e->{keylist} = CharCodes->getCharsKochOrder($e->{kochlevel});
-
-   if ($e->{kochlevel} > 1 and $e->{userelfreq}) {
-      $e->{xweights} = CharCodes->getKochWeights($e->{kochlevel});
-   } else {
-      $self->setexweights();
-   }
+   $self->setexweights();
 }
 
 sub setexweights {
@@ -218,17 +112,6 @@ sub prepareTest {
 
 
 }
-
-sub validateAudioSettings {
-die "Attempt to use Exercise::validateAudioSettings"; 
-   my $self = shift;
-   my $e = $self->{dlg}->{e};
-
-   if ($e->{pitchshift} eq '') {
-      $e->{pitchshift} = 0;
-   }
-}
-
 
 sub validateSettings {
    my $self = shift;
@@ -564,16 +447,6 @@ sub generateText {
   return $text;
 }
 
-sub calibrate {
-die "tried to access Exercise::calibrate";
-   my $self = shift;
-   $self->openPlayer;
-   # play a standard message at the selected pitch and wpm
-
-   $self->writePlayer("paris paris");
-   $self->closePlayer;
-}
-
 sub stopAuto {
    my $self = shift;
    my $e = $self->{dlg}->{e};
@@ -615,22 +488,6 @@ sub autoweight {
    my $xweights = $e->{autoextraweights};
    $xweights =~ s/[ _]//g; # blanks are valid characters but should not be picked
    $e->{xweights} = $xweights;
-}
-
-sub syncflush {
-die "tried to access Exercise::syncflush";
-   my $self = shift;
-   my $e = $self->{dlg}->{e};
-
-   # Check that previous playing has finished so timings are accurate
-   my $pollctr;
-
-   for ($pollctr = 0; $pollctr < 50; $pollctr++) {
-      last if (-f $mp2readyfile);
-      usleep(20000); # microseconds
-   }
-
-   unlink($mp2readyfile) if -f $mp2readyfile;
 }
 
 1;
