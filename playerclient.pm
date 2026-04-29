@@ -42,7 +42,6 @@ sub openPlayer {
    my $e = shift; # ref to user parameters including audio settings
    my $textmode = shift; # optional boolean
 
-
    die "Opening Player when already connected"  if defined($self->{MP});
 
    if (!(defined $e)) {
@@ -52,6 +51,11 @@ sub openPlayer {
 
    my @audiofields = qw/wpm effwpm pitch dashweight extrawordspaces attenuation pitchshift/;
    my %ehash = %{$e}; # simplifies taking a slice of the values
+
+   # Enable calling from main or exercise context
+   defined($ehash{wpm}) or ($ehash{wpm} = $e->{initwpm});
+   defined($ehash{effwpm}) or ($ehash{effwpm} = $e->{initeffwpm});
+
    my $openargs = join(' ', @ehash{@audiofields});
    open($self->{MP}, "|  perl $morseplayer $openargs") or die "Failed to connect to player";
    defined($self->{MP}) or die "Player pipe filehandle not defined";

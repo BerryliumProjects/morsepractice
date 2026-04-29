@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 use lib '.';
-use Test::Simple tests=>9;
+use Test::Simple tests=>10;
 use playerclient;
 use Data::Dumper;
 
@@ -23,8 +23,16 @@ $pc->writePlayer('qrs pse');
 $pc->closePlayer;
 ok(!(defined $pc->{MP}), 'player closed');
 
-ok(1, 'play codex at standard settings of 440Hz and 20wpm');
+ok(1, 'play codex as text');
 PlayerClient->playText($e, 'codex');
+
+ok(1, 'play calibration test with initial wpm/effwpm 20/18');
+
+$e->{wpm} = undef;
+$e->{effwpm} = undef;
+$e->{initwpm} = 20;
+$e->{initeffwpm} = 18;
+PlayerClient->calibrate($e);
 
 $e->{pitchshift} = 1;
 ok(1, 'play calibration test with pitch shift 1 semitone');
