@@ -371,9 +371,8 @@ sub checkword {
             }
 
             if ($e->{autoincrement}) {
-               if ($e->{effwpm} eq $e->{wpm}) {
-                  # if still in farnsworth mode, just stretch the gaps but leave the character speed the same
-                  # note that consistent failing will continue to reduce both without limit
+               if ($e->{initwpm} lt $e->{wpm}) {
+                  # keep character wpm at least at initial wpm - stretch gaps if need to go below that. There is no lower limit on effective wpm.
                   $e->{wpm}--;
                }
 
