@@ -89,9 +89,9 @@ my $keylistlen = scalar(@keylist);
 
 
 my $svr = Audio::Play->new(1);
-# $svr->rate(40000); # uncomment if default bit rate is too low - will emit "audio_flush with state open" warning
+$svr->rate(40000); # emits "audio_flush with state open" warning
 my $bitrate = $svr->rate; # may be lower than requested
-# print "Sampling rate: $bitrate\n";
+print "Sampling rate: $bitrate\n";
 
 generateAudioData();
 
