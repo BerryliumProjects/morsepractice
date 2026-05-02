@@ -95,12 +95,12 @@ sub show {
 
    if ($extype ne 'Single characters') {
       $xwdf->addCheckbuttonField('Sync after each word', 'syncafterword',  1);
-      $xwdf->addCheckbuttonField('Auto-increment speed', 'autoincrement',  0);
       $xwdf->addCheckbuttonField('Allow backspace', 'allowbackspace',  1);
    } else { 
       $e->{syncafterword} = 1;
    }
 
+   $xwdf->addCheckbuttonField('Auto-increment speed', 'autoincrement',  0);
    $xwdf->addCheckbuttonField('Character reaction times', 'measurecharreactions',  1);
    $xwdf->addCheckbuttonField('Retry mistakes', 'retrymistakes',  1);
 
